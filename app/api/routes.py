@@ -70,8 +70,16 @@ def chat_endpoint(request: ChatRequest):
             session_id=sid,
             force_mock=request.force_mock
         )
+        
+        # Ensure response is clean string
+        raw_res = result["response"]
+        if isinstance(raw_res, list):
+            res_str = "".join([p.get("text", str(p)) if isinstance(p, dict) else str(p) for p in raw_res])
+        else:
+            res_str = str(raw_res)
+
         return ChatResponse(
-            response=result["response"],
+            response=res_str,
             session_id=result["session_id"],
             tools_used=result["tools_used"],
             guardrail_triggered=result["guardrail_triggered"],

@@ -110,7 +110,23 @@ class LangChainAgent:
             
             output_messages = result.get("messages", [])
             final_message = output_messages[-1] if output_messages else AIMessage(content="")
-            response_text = final_message.content
+            
+            # Robust extraction of string content (handles string, list of parts, or dicts)
+            raw_content = final_message.content
+            if isinstance(raw_content, str):
+                response_text = raw_content
+            elif isinstance(raw_content, list):
+                parts = []
+                for p in raw_content:
+                    if isinstance(p, str):
+                        parts.append(p)
+                    elif isinstance(p, dict) and "text" in p:
+                        parts.append(p["text"])
+                    elif hasattr(p, "text"):
+                        parts.append(p.text)
+                response_text = "".join(parts)
+            else:
+                response_text = str(raw_content)
 
             # Extract any tools called during the agent execution
             tools_used = []
