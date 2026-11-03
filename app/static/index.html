@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARTEFACT - Empório da Música | Atendimento com IA</title>
+  
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            brand: {
+              magenta: '#E60067',
+              pink: '#FF2D75',
+              dark: '#0B0D13',
+              card: '#13161F',
+              sidebar: '#0E1017',
+              border: '#1F2433',
+              input: '#161924',
+              accent: '#262C3E',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18, ReactDOM & Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      background-color: #0B0D13;
+      color: #E2E8F0;
+      font-family: 'Inter', sans-serif;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1F2433;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #2D354B;
+    }
+    .artefact-glow {
+      box-shadow: 0 0 25px -5px rgba(230, 0, 103, 0.25);
+    }
+    .bubble-user {
+      background: linear-gradient(135deg, #1C2233 0%, #151926 100%);
+      border: 1px solid #2B334B;
+    }
+    .bubble-bot {
+      background: #13161F;
+      border: 1px solid #1F2433;
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col">
+  <div id="root" class="h-full w-full"></div>
+
+  <!-- React Application -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Artefact Chevron Logo Icon for the letter 'A'
+    const ArtefactLetterA = ({ className = "w-6 h-6 inline-block text-white" }) => (
+      <svg 
+        className={className} 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="3.2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+      >
+        <polyline points="4 21 12 3 20 21" />
+      </svg>
+    );
+
+    // Artefact Branding Top Component
+    const ArtefactTopBrand = () => (
+      <div className="flex flex-col items-center justify-center select-none py-1">
+        <div className="flex items-center tracking-[0.28em] font-extrabold text-xl md:text-2xl text-white font-display">
+          <ArtefactLetterA className="w-5 h-5 md:w-6 md:h-6 mr-0.5 text-white" />
+          <span>RTEF</span>
+          <ArtefactLetterA className="w-5 h-5 md:w-6 md:h-6 mx-0.5 text-white" />
+          <span>CT</span>
+        </div>
+        <div className="h-[2.5px] w-16 md:w-20 bg-gradient-to-r from-[#E60067] via-[#FF2D75] to-[#E60067] rounded-full mt-1"></div>
+      </div>
+    );
+
+    // Initial Suggestions
+    const QUICK_PROMPTS = [
+      { label: "Violões até R$ 1000", query: "Quais opções de violões disponíveis custando até R$1000?", icon: "🎸" },
+      { label: "Preço Takamine GD20", query: "Quanto custa o Takamine GD20 e opções de pagamento?", icon: "💰" },
+      { label: "Política de Devolução", query: "Me arrependi da minha compra, posso devolver meu pedido?", icon: "📦" },
+      { label: "Horários e Endereço", query: "Qual o endereço da loja e horário de funcionamento?", icon: "📍" },
+    ];
+
+    function App() {
+      // Sessions & Persistence
+      const [sessions, setSessions] = useState(() => {
+        try {
+          const saved = localStorage.getItem("artefact_chat_sessions");
+          return saved ? JSON.parse(saved) : [{ id: "sess_default", title: "Nova Conversa", date: new Date().toLocaleDateString("pt-BR") }];
+        } catch {
+          return [{ id: "sess_default", title: "Nova Conversa", date: new Date().toLocaleDateString("pt-BR") }];
+        }
+      });
+
+      const [currentSessionId, setCurrentSessionId] = useState(() => {
+        return localStorage.getItem("artefact_current_session") || "sess_default";
+      });
+
+      const [messages, setMessages] = useState([]);
+      const [input, setInput] = useState("");
+      const [isLoading, setIsLoading] = useState(false);
+      const [sidebarOpen, setSidebarOpen] = useState(true);
+      const [systemStatus, setSystemStatus] = useState({ healthy: true, provider: "LangChain ReAct", model: "gemini-3.5-flash-lite" });
+
+      const messagesEndRef = useRef(null);
+      const inputRef = useRef(null);
+
+      // Save sessions and active session to localStorage
+      useEffect(() => {
+        localStorage.setItem("artefact_chat_sessions", JSON.stringify(sessions));
+      }, [sessions]);
+
+      useEffect(() => {
+        localStorage.setItem("artefact_current_session", currentSessionId);
+      }, [currentSessionId]);
+
+      // Load conversation history from backend on session change or refresh
+      useEffect(() => {
+        fetchHistory(currentSessionId);
+        fetchHealth();
+      }, [currentSessionId]);
+
+      useEffect(() => {
+        scrollToBottom();
+      }, [messages, isLoading]);
+
+      const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      };
+
+      const fetchHealth = async () => {
+        try {
+          const res = await fetch("/api/health");
+          if (res.ok) {
+            const data = await res.json();
+            setSystemStatus({
+              healthy: data.status === "healthy",
+              provider: `LangChain (${data.provider.toUpperCase()})`,
+              model: data.model
+            });
+          }
+        } catch (e) {
+          console.warn("Backend health check failed:", e);
+        }
+      };
+
+      const fetchHistory = async (sessionId) => {
+        setIsLoading(true);
+        try {
+          const res = await fetch(`/api/chat/history/${sessionId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.messages && data.messages.length > 0) {
+              setMessages(data.messages);
+            } else {
+              setMessages([]);
+            }
+          } else {
+            setMessages([]);
+          }
+        } catch (e) {
+          console.error("Error fetching history:", e);
+          setMessages([]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      const createNewSession = () => {
+        const newId = "sess_" + Date.now().toString(36);
+        const newSession = {
+          id: newId,
+          title: "Nova Conversa",
+          date: new Date().toLocaleDateString("pt-BR")
+        };
+        setSessions(prev => [newSession, ...prev]);
+        setCurrentSessionId(newId);
+        setMessages([]);
+        setTimeout(() => inputRef.current?.focus(), 100);
+      };
+
+      const deleteSession = async (e, sessionId) => {
+        e.stopPropagation();
+        try {
+          await fetch(`/api/chat/history/${sessionId}`, { method: "DELETE" });
+        } catch (err) {
+          console.error(err);
+        }
+
+        const remaining = sessions.filter(s => s.id !== sessionId);
+        if (remaining.length === 0) {
+          const fallbackId = "sess_" + Date.now().toString(36);
+          const fallback = [{ id: fallbackId, title: "Nova Conversa", date: new Date().toLocaleDateString("pt-BR") }];
+          setSessions(fallback);
+          setCurrentSessionId(fallbackId);
+          setMessages([]);
+        } else {
+          setSessions(remaining);
+          if (currentSessionId === sessionId) {
+            setCurrentSessionId(remaining[0].id);
+          }
+        }
+      };
+
+      const handleSend = async (overrideQuery = null) => {
+        const text = (overrideQuery || input).trim();
+        if (!text || isLoading) return;
+
+        setInput("");
+
+        // Optimistically update UI
+        const userMsg = { role: "user", content: text };
+        setMessages(prev => [...prev, userMsg]);
+        setIsLoading(true);
+
+        // Update session title if first message
+        if (messages.length === 0) {
+          const title = text.slice(0, 28) + (text.length > 28 ? "..." : "");
+          setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, title } : s));
+        }
+
+        try {
+          const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: text,
+              session_id: currentSessionId
+            })
+          });
+
+          if (!res.ok) {
+            throw new Error(`HTTP error ${res.status}`);
+          }
+
+          const data = await res.json();
+          const assistantMsg = {
+            role: "assistant",
+            content: data.response,
+            tools_used: data.tools_used || [],
+            guardrail_triggered: data.guardrail_triggered
+          };
+          setMessages(prev => [...prev, assistantMsg]);
+        } catch (error) {
+          console.error("Chat error:", error);
+          setMessages(prev => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "Desculpe, tive uma oscilação na conexão com o sistema da loja. Poderia tentar enviar sua mensagem novamente?",
+              tools_used: []
+            }
+          ]);
+        } finally {
+          setIsLoading(false);
+          setTimeout(() => inputRef.current?.focus(), 50);
+        }
+      };
+
+      const handleKeyDown = (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          handleSend();
+        }
+      };
+
+      return (
+        <div className="flex h-screen w-full bg-[#0B0D13] text-slate-100 font-sans overflow-hidden">
+          
+          {/* SIDEBAR: CONVERSATION HISTORY */}
+          <aside className={`
+            fixed inset-y-0 left-0 z-40 w-72 bg-[#0E1017] border-r border-[#1B202E] flex flex-col transition-all duration-300 ease-in-out
+            md:relative md:translate-x-0
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:w-0 md:opacity-0 md:border-none"}
+          `}>
+            {/* Sidebar Header */}
+            <div className="p-4 border-b border-[#1B202E] flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl">🎸</span>
+                <span className="font-semibold text-sm text-slate-200">Empório da Música</span>
+              </div>
+              <button 
+                onClick={() => setSidebarOpen(false)}
+                className="md:hidden text-slate-400 hover:text-white p-1 rounded-md"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* New Chat Button */}
+            <div className="p-3">
+              <button
+                onClick={createNewSession}
+                className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-[#1E2333] to-[#181C2A] hover:from-[#262D42] hover:to-[#1E2436] text-slate-200 hover:text-white border border-[#2B334B] hover:border-[#E60067] rounded-xl py-2.5 px-4 text-sm font-medium transition-all shadow-sm"
+              >
+                <span className="text-base font-bold text-[#E60067]">+</span>
+                <span>Nova Conversa</span>
+              </button>
+            </div>
+
+            {/* Session List */}
+            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-2 py-1">
+                Histórico de Conversas
+              </div>
+              {sessions.map(s => {
+                const isActive = s.id === currentSessionId;
+                return (
+                  <div
+                    key={s.id}
+                    onClick={() => {
+                      setCurrentSessionId(s.id);
+                      if (window.innerWidth < 768) setSidebarOpen(false);
+                    }}
+                    className={`
+                      group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-all
+                      ${isActive 
+                        ? "bg-[#181C2A] text-white border-l-2 border-[#E60067] font-medium" 
+                        : "text-slate-400 hover:bg-[#12151F] hover:text-slate-200"}
+                    `}
+                  >
+                    <div className="flex items-center space-x-2.5 truncate">
+                      <span className="text-xs text-slate-500">💬</span>
+                      <span className="truncate">{s.title || "Conversa"}</span>
+                    </div>
+                    <button
+                      onClick={(e) => deleteSession(e, s.id)}
+                      className="opacity-0 group-hover:opacity-100 hover:text-red-400 p-1 text-xs text-slate-500 transition-opacity"
+                      title="Excluir conversa"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Sidebar Footer: System Status */}
+            <div className="p-3 border-t border-[#1B202E] bg-[#0A0C12] text-xs text-slate-400">
+              <div className="flex items-center justify-between mb-1">
+                <span className="flex items-center space-x-1.5">
+                  <span className={`w-2 h-2 rounded-full ${systemStatus.healthy ? "bg-emerald-500 animate-pulse-subtle" : "bg-amber-500"}`}></span>
+                  <span className="text-[11px] font-medium text-slate-300">Sistema Conectado</span>
+                </span>
+                <span className="text-[10px] text-slate-500 uppercase font-mono">v1.0</span>
+              </div>
+              <div className="text-[11px] text-slate-500 truncate font-mono">
+                {systemStatus.provider}
+              </div>
+            </div>
+          </aside>
+
+          {/* MAIN CHAT CONTENT */}
+          <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#0B0D13]">
+            
+            {/* TOP HEADER: CENTERED ARTEFACT BRANDING */}
+            <header className="h-16 border-b border-[#1A1F2C] bg-[#0E1017]/90 backdrop-blur flex items-center justify-between px-4 z-20 shrink-0">
+              <div className="w-10 flex items-center">
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-[#1A1F2C] transition-colors"
+                  title="Toggle histórico"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* CENTER: ARTEFACT WORD WITH EXACT FONT & ACCENT */}
+              <div className="flex-1 flex justify-center">
+                <ArtefactTopBrand />
+              </div>
+
+              {/* RIGHT: STORE BADGE */}
+              <div className="w-10 flex justify-end">
+                <div className="hidden sm:flex items-center text-xs text-slate-400 bg-[#161924] border border-[#23283B] rounded-full px-3 py-1">
+                  <span className="text-[#E60067] mr-1.5 font-bold">●</span>
+                  <span className="font-medium text-slate-300">Campo Grande/MS</span>
+                </div>
+              </div>
+            </header>
+
+            {/* MESSAGES SCROLL CONTAINER */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+              
+              {/* WELCOME BANNER (IF EMPTY CHAT) */}
+              {messages.length === 0 && (
+                <div className="max-w-2xl mx-auto my-auto pt-10 pb-6 flex flex-col items-center text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#1B2133] to-[#121624] border border-[#29324B] flex items-center justify-center text-2xl mb-4 shadow-lg artefact-glow">
+                    🎸
+                  </div>
+                  <h1 className="text-2xl md:text-3xl font-bold font-display text-white mb-2">
+                    Como posso te ajudar hoje?
+                  </h1>
+                  <p className="text-sm text-slate-400 max-w-md mb-8">
+                    Sou o assistente virtual da <strong className="text-slate-200">Empório da Música</strong>. Consulte instrumentos, preços, status de pedidos e políticas da loja.
+                  </p>
+
+                  {/* Quick Starter Chips */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg text-left">
+                    {QUICK_PROMPTS.map((p, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleSend(p.query)}
+                        className="p-3.5 rounded-xl bg-[#131620] hover:bg-[#1A1F2D] border border-[#1F2536] hover:border-[#E60067]/60 transition-all flex items-start space-x-3 text-sm text-slate-300 hover:text-white group"
+                      >
+                        <span className="text-lg">{p.icon}</span>
+                        <div>
+                          <div className="font-medium text-slate-200 group-hover:text-white">{p.label}</div>
+                          <div className="text-xs text-slate-500 line-clamp-1">{p.query}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* CONVERSATION MESSAGES */}
+              <div className="max-w-3xl mx-auto space-y-5">
+                {messages.map((m, idx) => {
+                  const isUser = m.role === "user";
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`flex items-start space-x-3 ${isUser ? "flex-row-reverse space-x-reverse" : "flex-row"}`}
+                    >
+                      {/* Avatar */}
+                      <div className={`
+                        w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold
+                        ${isUser 
+                          ? "bg-gradient-to-tr from-[#252C3E] to-[#36405A] text-white" 
+                          : "bg-gradient-to-tr from-[#E60067] to-[#FF4589] text-white shadow-md"}
+                      `}>
+                        {isUser ? "VOCÊ" : "IA"}
+                      </div>
+
+                      {/* Bubble */}
+                      <div className={`
+                        max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm
+                        ${isUser ? "bubble-user text-slate-100 rounded-tr-sm" : "bubble-bot text-slate-200 rounded-tl-sm"}
+                      `}>
+                        {/* Tools Badge Indicator (if bot called tools) */}
+                        {!isUser && m.tools_used && m.tools_used.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2 pb-2 border-b border-[#1F2536]">
+                            <span className="text-[10px] uppercase font-mono text-slate-500 flex items-center">
+                              <span className="mr-1">⚡</span> Tools:
+                            </span>
+                            {m.tools_used.map((tool, tIdx) => (
+                              <span 
+                                key={tIdx} 
+                                className="text-[10px] font-mono bg-[#1A1F2C] text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-md"
+                              >
+                                {tool}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Guardrail badge */}
+                        {!isUser && m.guardrail_triggered && (
+                          <div className="inline-flex items-center text-[10px] font-mono bg-[#28151D] text-[#FF4589] border border-[#FF2D75]/30 px-2 py-0.5 rounded-md mb-2">
+                            🛡️ Política de Escopo Ativada
+                          </div>
+                        )}
+
+                        {/* Message Text with basic markdown line formatting */}
+                        <div className="space-y-1.5 whitespace-pre-wrap">
+                          {m.content}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Loading indicator */}
+                {isLoading && (
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#E60067] to-[#FF4589] text-white flex items-center justify-center shrink-0 text-xs font-semibold shadow-md">
+                      IA
+                    </div>
+                    <div className="bubble-bot rounded-2xl rounded-tl-sm px-4 py-3 text-sm flex items-center space-x-2 text-slate-400">
+                      <span className="w-2 h-2 rounded-full bg-[#E60067] animate-ping"></span>
+                      <span>Consultando catálogo e políticas...</span>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* BOTTOM FLOATING INPUT (21st.dev Style) */}
+            <div className="p-4 md:p-6 bg-gradient-to-t from-[#0B0D13] via-[#0B0D13]/90 to-transparent">
+              <div className="max-w-3xl mx-auto">
+                <div className="relative rounded-2xl bg-[#131620] border border-[#232A3D] focus-within:border-[#E60067] transition-all shadow-xl artefact-glow">
+                  
+                  {/* Textarea */}
+                  <textarea
+                    ref={inputRef}
+                    rows="1"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Pergunte sobre instrumentos, preços, status de pedido ou regras da loja..."
+                    className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 px-4 pt-3.5 pb-12 focus:outline-none resize-none overflow-hidden"
+                    style={{ minHeight: "56px" }}
+                  />
+
+                  {/* Input Bottom Bar with Actions */}
+                  <div className="absolute bottom-2.5 inset-x-3 flex items-center justify-between text-xs text-slate-500">
+                    <div className="flex items-center space-x-2">
+                      <span className="hidden sm:inline-block text-[11px] text-slate-500">
+                        Pressione <kbd className="px-1.5 py-0.5 rounded bg-[#1B2131] text-slate-300 font-mono text-[10px]">Enter</kbd> para enviar
+                      </span>
+                    </div>
+
+                    {/* Send Button */}
+                    <button
+                      onClick={() => handleSend()}
+                      disabled={!input.trim() || isLoading}
+                      className={`
+                        flex items-center space-x-1.5 px-4 py-1.5 rounded-xl font-medium text-xs transition-all shadow-sm
+                        ${input.trim() && !isLoading 
+                          ? "bg-gradient-to-r from-[#E60067] to-[#FF2D75] text-white hover:brightness-110 active:scale-95" 
+                          : "bg-[#1E2333] text-slate-500 cursor-not-allowed"}
+                      `}
+                    >
+                      <span>Enviar</span>
+                      <span>→</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Footer Subtext */}
+                <div className="text-center mt-2 text-[11px] text-slate-500">
+                  Empório da Música • Atendimento Inteligente com LangChain ReAct & RAG
+                </div>
+              </div>
+            </div>
+
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

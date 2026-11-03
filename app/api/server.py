@@ -1,12 +1,17 @@
-"""FastAPI Application Setup."""
+"""FastAPI Application Setup and Static Frontend Server."""
 
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.db.database import db_manager
 from app.api.routes import router
+
+STATIC_DIR = settings.BASE_DIR / "app" / "static"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,7 +28,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan
     )
 
-    # Enable CORS for frontend clients (React/Vite)
+    # Enable CORS for local development and clients
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -32,9 +37,18 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Include REST API endpoints
     app.include_router(router)
+
+    # Mount static assets directory
+    if STATIC_DIR.exists():
+        app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+        @app.get("/", include_in_schema=False)
+        async def serve_index():
+            """Serve the responsive React Single Page Application."""
+            return FileResponse(str(STATIC_DIR / "index.html"))
 
     return app
 
 app = create_app()
-

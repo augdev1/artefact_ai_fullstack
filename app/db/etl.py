@@ -157,3 +157,4 @@ class DataPipeline:
                     "is_active": 1 if is_active == 1 else 0
                 })
         return cleaned
+
