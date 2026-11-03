@@ -1,100 +1,132 @@
-# Exemplos de Interacao com o Agente - Emporio da Musica
+# Representative Agent Interactions - Empório da Música
 
-Este documento reune 5 conversas representativas demonstrando o comportamento do agente inteligente desenvolvido com LangChain, aplicando RAG nas Politicas da Loja, Function Calling em catalogo e pedidos relacionais, e Guardrails de Escopo.
-
----
-
-## Conversa 1: Consulta de Catalogo com Filtro de Preco (Situacao Real)
-* **Cenario**: Cliente busca instrumentos especificos respeitando um teto orcamentario de R$ 1.000,00.
-* **Ferramenta Executada**: `search_products(category_name='Violões', max_price=1000.0)`
-* **Entrada do Cliente**: "Ola, tudo bem? Quais opcoes de violoes disponiveis voces tem custando ate R$1000?"
-* **Resposta do Agente**:
-  > "Ola! Temos excelentes opcoes de violoes em estoque dentro do seu orcamento:
-  >
-  > 1. **Tagima Memphis AC-39 Nylon Natural**
-  >    * Preco de Tabela: R$ 429,90
-  >    * A vista no PIX (5% de desconto): R$ 408,40
-  >    * Parcelamento: ate 12x de R$ 35,82 sem juros
-  >    * Estoque: 15 unidades disponiveis
-  >    * Perfil: Classico de estudo com cordas de nylon.
-  >
-  > 2. **Yamaha C40 Nylon Natural**
-  >    * Preco de Tabela: R$ 599,90
-  >    * A vista no PIX (5% de desconto): R$ 569,91
-  >    * Parcelamento: ate 12x de R$ 49,99 sem juros
-  >    * Estoque: 12 unidades disponiveis
-  >    * Perfil: Tampo em Spruce, acabamento tradicional e referencia para estudantes.
-  >
-  > 3. **Shelby SN-100 Folk Aco Preto**
-  >    * Preco de Tabela: R$ 549,00
-  >    * A vista no PIX (5% de desconto): R$ 521,55
-  >    * Parcelamento: ate 12x de R$ 45,75 sem juros
-  >    * Estoque: 5 unidades disponiveis
-  >    * Perfil: Estilo Folk com cordas de aco.
-  >
-  > Para entregas na regiao metropolitana de Campo Grande acima de R$ 500,00 o frete e gratuito via motoboy proprio. Gostaria de mais detalhes sobre algum desses modelos?"
+This document details five representative interaction scenarios demonstrating the conversational agent's architecture, including LangChain ReAct orchestration, RAG policy retrieval, relational database function calling, and deterministic pre-LLM scope guardrails.
 
 ---
 
-## Conversa 2: Consulta Especifica de Instrumento e Regras de Pagamento
-* **Cenario**: Consulta sobre modelo especifico (Takamine GD20), calculo de desconto a vista no PIX e regras de parcelamento sem juros.
-* **Ferramentas Executadas**: `get_product_details(name_or_id='Takamine GD20')` e `get_store_policies(topic_or_query='pagamento pix parcelamento')`
-* **Entrada do Cliente**: "Quanto custa o Takamine GD20? Como funciona o pagamento parcelado e no PIX?"
-* **Resposta do Agente**:
-  > "O Takamine GD20 (modelo Folk Dreadnought com tampo solido em cedro) esta disponivel em nosso estoque pelo valor de tabela de **R$ 2.199,00** (temos 5 unidades disponiveis).
+## Scenario 1: Catalog Search with Price Ceiling
+
+* **Context**: Customer is searching for available acoustic guitars within a strict budget ceiling of R$ 1,000.00.
+* **Execution Path**: Agent processes the query, identifies category and budget constraints, and calls `search_products`.
+* **Invoked Tool**: `search_products(category_name='Violões', max_price=1000.0)`
+* **Customer Input (PT-BR)**:
+  > "Olá, tudo bem? Quais opções de violões disponíveis vocês têm custando até R$1000?"
+* **Agent Response**:
+  > Temos ótimas opções de violões disponíveis em estoque por até R$ 1.000,00!
   >
-  > Nossas condicoes de pagamento:
-  > * **A vista no PIX**: 5% de desconto sobre o preco de tabela, totalizando **R$ 2.089,05** (economia de R$ 109,95).
-  > * **Cartao de Credito**: Parcelamento em ate **12x de R$ 183,25 sem juros**, em conformidade com a parcela minima de R$ 100,00 da loja.
-  > * **Condicoes Especiais**: Por se tratar de uma compra acima de R$ 2.000,00, e permitida a combinacao de formas de pagamento (ex.: entrada no PIX com abatimento de saldo em cartao de credito)."
+  > * **Tagima Memphis AC-39 Nylon Natural**
+  >   * **Preço:** R$ 429,90 *(ou R$ 408,40 à vista no PIX com 5% de desconto)*
+  >   * **Estoque:** 15 unidades disponíveis
+  >   * **Perfil:** Violão clássico de estudo com cordas de nylon, alta tocabilidade para iniciantes.
+  >
+  > * **Rozini RC-104 Nylon Estudante**
+  >   * **Preço:** R$ 459,90 *(ou R$ 436,90 à vista no PIX)*
+  >   * **Estoque:** 10 unidades disponíveis
+  >   * **Perfil:** Acabamento primoroso e acústica equilibrada para aprendizado.
+  >
+  > * **Shelby SN-100 Folk Aço Preto**
+  >   * **Preço:** R$ 549,00 *(ou R$ 521,55 à vista no PIX)*
+  >   * **Estoque:** 5 unidades disponíveis
+  >   * **Perfil:** Modelo Folk com cordas de aço e sonoridade encorpada.
+  >
+  > * **Yamaha C40 Nylon Natural**
+  >   * **Preço:** R$ 599,90 *(ou R$ 569,91 à vista no PIX)*
+  >   * **Estoque:** 12 unidades disponíveis
+  >   * **Perfil:** Referência pedagógica global com tampo em Spruce e afinação estável.
+  >
+  > Todos os modelos contam com parcelamento em até **12x sem juros** no cartão de crédito (observada a parcela mínima de R$ 100,00) ou 5% de desconto no PIX. Para pedidos acima de R$ 500,00 na região de Campo Grande, a entrega expressa é gratuita via frota própria.
+* **Technical Notes**:
+  * Tool correctly extracted the price boundary (`max_price=1000.0`) and category filter (`category_name='Violões'`).
+  * Only in-stock models (`stock_quantity > 0`) were returned.
+  * Pricing includes precise 5% PIX discount calculations and store installment policies.
 
 ---
 
-## Conversa 3: Aplicacao de Politicas de Devolucao e Arrependimento (CDC)
-* **Cenario**: Cliente adquiriu produto pelo canal online e manifesta arrependimento de compra dentro do prazo legal.
-* **Ferramenta Executada**: `get_store_policies(topic_or_query='arrependi devolucao compra')`
-* **Entrada do Cliente**: "Comprei um teclado pelo site mas me arrependi da minha compra, chegou ontem. Posso devolver meu pedido e receber o reembolso?"
-* **Resposta do Agente**:
-  > "Sim, a devolucao e garantida conforme o Codigo de Defesa do Consumidor (Artigo 49).
+## Scenario 2: Specific Instrument Details & Payment Terms
+
+* **Context**: Customer asks about a high-value instrument (Takamine GD20), installment conditions, and cash discounts.
+* **Execution Path**: Multi-tool sequential execution. The agent retrieves exact product specs from SQLite and cross-references payment policies from the policy manual (RAG).
+* **Invoked Tools**:
+  1. `get_product_details(name_or_id='Takamine GD20')`
+  2. `get_store_policies(topic_or_query='pagamento pix parcelamento')`
+* **Customer Input (PT-BR)**:
+  > "Quanto custa o Takamine GD20? Como funciona o pagamento parcelado e no PIX?"
+* **Agent Response**:
+  > O **Takamine GD20** (modelo Folk Dreadnought com tampo sólido em Cedar e escala em Ovangkol) está disponível em nosso estoque por **R$ 2.199,00** (temos 5 unidades em estoque).
   >
-  > Para compras realizadas em nossos canais online, voce possui ate **7 (sete) dias corridos** apos a data de recebimento para solicitar a devolucao por direito de arrependimento, sem necessidade de justificativa.
-  >
-  > Procedimentos operacionais:
-  > 1. O instrumento deve ser devolvido em sua embalagem original, sem sinais de utilizacao ou avarias, acompanhado de manuais, cabos e acessorios de fabrica.
-  > 2. O custo do frete de devolucao e integralmente coberto pela Emporio da Musica atraves de autorizacao de postagem reversa.
-  > 3. O estorno/reembolso financeiro e realizado na mesma modalidade de pagamento original em ate 10 dias uteis apos a conferencia fisica do item em nossa central.
-  >
-  > Por favor, informe o numero do pedido ou o e-mail cadastrado para que possamos iniciar o procedimento de devolucao."
+  > Condições de pagamento disponíveis:
+  > * **À vista no PIX**: 5% de desconto direto sobre o valor de tabela, saindo por **R$ 2.089,05** (economia de R$ 109,95).
+  > * **Cartão de Crédito**: Parcelamento em até **12x de R$ 183,25 sem juros** (respeitando a parcela mínima de R$ 100,00 da loja).
+  > * **Condição Especial de Alto Valor**: Por se tratar de um instrumento com valor superior a R$ 2.000,00, é permitida a divisão de pagamento entre duas modalidades (por exemplo, entrada no PIX com abatimento do saldo em até 12x no cartão).
+* **Technical Notes**:
+  * The ReAct loop recognized that pricing came from the database while rules governing split payments and installment floors came from the policy manual.
+  * Both pieces of knowledge were synthesized deterministically without prompt drift.
 
 ---
 
-## Conversa 4: Guardrail de Escopo e Politica de Acessorios
-* **Cenario**: Cliente solicita itens nao comercializados pela loja (cordas avulsas, palhetas e amplificadores).
-* **Acao**: Bloqueio deterministico imediato na camada de Guardrail de escopo antes do envio da requisicao ao modelo.
-* **Entrada do Cliente**: "Voces vendem encordoamento de guitarra 0.10, palhetas Fender e amplificador de 50W?"
-* **Resposta do Agente**:
-  > "A Emporio da Musica atua com especializacao exclusiva na comercializacao de instrumentos musicais completos (violões, guitarras, contrabaixos, baterias, teclados, pianos, instrumentos de sopro e orquestrais).
+## Scenario 3: Store Return Policy & Consumer Rights (CDC)
+
+* **Context**: Customer purchased an electronic keyboard online, received it recently, and wishes to initiate a return under the statutory right of withdrawal.
+* **Execution Path**: Agent queries internal customer service policies to retrieve statutory and operational return guidelines.
+* **Invoked Tool**: `get_store_policies(topic_or_query='devolucao arrependimento compra')`
+* **Customer Input (PT-BR)**:
+  > "Comprei um teclado pelo site mas me arrependi da minha compra, chegou ontem. Posso devolver meu pedido?"
+* **Agent Response**:
+  > Sim, a devolução é perfeitamente assegurada pelo Código de Defesa do Consumidor (Artigo 49) e pelas políticas internas da Empório da Música.
   >
-  > A loja nao comercializa acessorios avulsos, tais como encordoamentos avulsos, palhetas, cabos, pedais de efeito, amplificadores ou cases.
+  > Para compras realizadas em nossos canais digitais, você tem até **7 (sete) dias corridos**, contados a partir da data de entrega, para solicitar a devolução por direito de arrependimento com reembolso integral.
   >
-  > Recomendamos a busca desses insumos em lojas especializadas em audio e acessorios localizadas na regiao central de Campo Grande. Estamos a disposicao para atende-lo na selecao e compra de instrumentos musicais de nosso catalogo."
+  > Diretrizes operacionais para a devolução:
+  > 1. O instrumento deve ser devolvido em sua embalagem original, acompanhado de todos os manuais, cabos e fontes de alimentação, sem sinais de mau uso ou avarias.
+  > 2. O custo do frete de logística reversa é integralmente assumido pela loja por meio de autorização de postagem dos Correios.
+  > 3. O estorno financeiro é processado na mesma forma de pagamento original em até 10 dias úteis após a conferência técnica do item em nosso centro de distribuição.
+  >
+  > Por favor, informe o número do seu pedido ou o e-mail cadastrado na compra para gerarmos o código de postagem reversa.
+* **Technical Notes**:
+  * Correctly prioritized policy knowledge over order status search.
+  * Verified 7-day statutory deadline, complete packaging requirement, free reverse logistics, and refund SLA.
 
 ---
 
-## Conversa 5: Rastreamento de Pedido em Tempo Real com Dados do Banco
-* **Cenario**: Cliente consulta o status logistico de uma compra utilizando o identificador de pedido.
-* **Ferramenta Executada**: `check_order_status(order_id=1)`
-* **Entrada do Cliente**: "Boa tarde, gostaria de verificar o status do meu pedido 1. Quando chega?"
-* **Resposta do Agente**:
-  > "Boa tarde. Seguem os dados atualizados do pedido consultado em nosso sistema operacional:
+## Scenario 4: Scope Guardrail Activation (Accessory Rejection)
+
+* **Context**: Customer asks to purchase accessories (guitar strings, picks, amplifier) that are explicitly excluded from the store catalog.
+* **Execution Path**: Deterministic pre-LLM Guardrail intercepts the prompt before tool dispatch or external model invocation.
+* **Invoked Tool**: None (intercepted at `app/agent/guardrails.py`).
+* **Customer Input (PT-BR)**:
+  > "Vocês vendem encordoamento de guitarra 0.10, palhetas Fender e amplificador de 50W?"
+* **Agent Response**:
+  > A Empório da Música é especializada exclusivamente na venda de instrumentos musicais completos (violões, guitarras, contrabaixos, baterias, teclados, pianos e instrumentos de sopro).
+  >
+  > Não comercializamos acessórios avulsos, peças avulsas, encordoamentos, palhetas, cabos, pedais de efeito, amplificadores ou cases avulsos.
+  >
+  > Recomendamos que você procure lojas especializadas em áudio e acessórios na região central de Campo Grande. Estamos à disposição para auxiliá-lo na escolha de instrumentos musicais completos de nosso catálogo.
+* **Technical Notes**:
+  * Evaluated in 0 ms API latency with zero token consumption.
+  * Rejection is firm, polite, and preserves store branding by suggesting partner channels.
+
+---
+
+## Scenario 5: Relational Order Status Tracking
+
+* **Context**: Customer provides an order ID to check current shipment progress and delivery confirmation.
+* **Execution Path**: Agent parses the integer identifier and executes a relational query against `orders`, `order_items`, and `customers`.
+* **Invoked Tool**: `check_order_status(order_id=1)`
+* **Customer Input (PT-BR)**:
+  > "Gostaria de saber o status do meu pedido 1. Quando chega?"
+* **Agent Response**:
+  > Seguem os dados atualizados do pedido consultado em nosso sistema operacional:
   >
   > * **Pedido**: #1
   > * **Cliente**: Lucas Mendes da Silva
-  > * **Data do Pedido**: 15/10/2025
-  > * **Status Atual**: Entregue ao destinatario
-  > * **Item**: 1x Roland FP-30X Piano Digital Preto
-  > * **Valor Total**: R$ 11.499,00 (Pagamento via PIX)
-  > * **Codigo de Rastreamento**: BRAB1234567BR
-  > * **Data de Entrega Registrada**: 25/10/2025
+  > * **Data da Compra**: 15/10/2025
+  > * **Status Atual**: Entregue ao destinatário
+  > * **Item Adquirido**: 1x Roland FP-30X Piano Digital Preto
+  > * **Valor Total**: R$ 11.499,00 (Pagamento à vista via PIX)
+  > * **Código de Rastreamento**: BRAB1234567BR
+  > * **Data de Entrega**: 25/10/2025
   >
-  > O pedido consta como entregue no endereco cadastrado. Caso tenha ocorrido qualquer inconsistencia na entrega ou necessite de assistencia referente a garantia de 90 dias, favor nos contatar."
+  > O pedido consta como entregue no endereço cadastrado. Caso tenha ocorrido qualquer inconsistência no recebimento ou precise de suporte técnico coberto pela garantia legal de 90 dias, estamos à disposição para atendê-lo.
+* **Technical Notes**:
+  * Relational join successfully linked customer details, item quantities, tracking identifier, and delivery timestamp.
+  * The agent accurately stated delivery completion rather than speculating about future delivery dates.
