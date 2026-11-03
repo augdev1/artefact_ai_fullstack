@@ -1,110 +1,100 @@
-# Exemplos de Interação com o Agente - Empório da Música
+# Exemplos de Interacao com o Agente - Emporio da Musica
 
-Este documento reúne 5 conversas reais demonstrando o comportamento do agente inteligente desenvolvido com **LangChain**, aplicando **RAG nas Políticas da Loja**, **Function Calling / Consultas no Catálogo e Pedidos** e **Guardrails de Escopo**.
-
----
-
-## Conversa 1: Consulta de Catálogo com Filtro de Preço (Situação Real)
-> **Cenário**: Cliente busca instrumentos específicos respeitando um limite de orçamento.
-> **Ferramenta executada**: `search_products(category_name='Violões', max_price=1000.0)`
-
-* **Cliente**: "Olá, tudo bem? Quais opções de violões disponíveis vocês têm custando até R$1000?"
-* **Assistente**:
-  > "Fala, beleza! Tudo ótimo por aqui! 🎸
-  >
-  > Temos excelentes opções de violões para você fazer um som de qualidade dentro desse orçamento. Olha só o que temos disponível agora no estoque:
-  >
-  > 1. **Yamaha C40 Nylon Natural**
-  >    * **Categoria**: Violões (Nylon)
-  >    * **Preço de Tabela**: R$ 599,90
-  >    * **À vista no PIX (5% OFF)**: R$ 569,91
-  >    * **Parcelamento**: até 12x de R$ 49,99 sem juros
-  >    * **Estoque**: 12 unidades disponíveis
-  >    * *Destaque*: Tampo em Spruce, excelente projeção sonora e ergonomia ideal para iniciantes e estudantes.
-  >
-  > 2. **Tagima Dallas Aço Eletroacústico**
-  >    * **Categoria**: Violões (Aço)
-  >    * **Preço de Tabela**: R$ 899,00
-  >    * **À vista no PIX (5% OFF)**: R$ 854,05
-  >    * **Parcelamento**: até 12x de R$ 74,92 sem juros
-  >    * **Estoque**: 8 unidades disponíveis
-  >    * *Destaque*: Pré-amplificador ativo com afinador digital integrado e corte cutaway.
-  >
-  > Lembrando que para pedidos acima de R$ 500,00 aqui na região metropolitana de Campo Grande o frete é **grátis** via motoboy próprio! 
-  >
-  > Você prefere cordas de nylon para um som mais suave ou de aço para uma pegada mais brilhante?"
+Este documento reune 5 conversas representativas demonstrando o comportamento do agente inteligente desenvolvido com LangChain, aplicando RAG nas Politicas da Loja, Function Calling em catalogo e pedidos relacionais, e Guardrails de Escopo.
 
 ---
 
-## Conversa 2: Consulta Específica de Instrumento e Regras de Pagamento
-> **Cenário**: Consulta sobre modelo específico (Takamine GD20), cálculo do desconto PIX e parcelamento no cartão.
-> **Ferramentas executadas**: `get_product_details(name_or_id='Takamine GD20')` e `get_store_policies(topic_or_query='pagamento pix parcelamento')`
-
-* **Cliente**: "Quanto custa o Takamine GD20? Como funciona o pagamento parcelado e no PIX?"
-* **Assistente**:
-  > "O **Takamine GD20** é uma verdadeira máquina! É um modelo Dreadnought folk com tampo sólido em cedro, que entrega um grave encorpado e sustain incrível.
+## Conversa 1: Consulta de Catalogo com Filtro de Preco (Situacao Real)
+* **Cenario**: Cliente busca instrumentos especificos respeitando um teto orcamentario de R$ 1.000,00.
+* **Ferramenta Executada**: `search_products(category_name='Violões', max_price=1000.0)`
+* **Entrada do Cliente**: "Ola, tudo bem? Quais opcoes de violoes disponiveis voces tem custando ate R$1000?"
+* **Resposta do Agente**:
+  > "Ola! Temos excelentes opcoes de violoes em estoque dentro do seu orcamento:
   >
-  > Ele está saindo por **R$ 2.199,00**.
+  > 1. **Tagima Memphis AC-39 Nylon Natural**
+  >    * Preco de Tabela: R$ 429,90
+  >    * A vista no PIX (5% de desconto): R$ 408,40
+  >    * Parcelamento: ate 12x de R$ 35,82 sem juros
+  >    * Estoque: 15 unidades disponiveis
+  >    * Perfil: Classico de estudo com cordas de nylon.
   >
-  > Nossas condições de pagamento para ele:
-  > * **No PIX à vista**: Você ganha **5% de desconto** sobre o preço de tabela, saindo por **R$ 2.089,05** (economia de R$ 109,95).
-  > * **No Cartão de Crédito**: Pode ser parcelado em **até 12x de R$ 183,25 sem juros** (respeitando nossa parcela mínima de R$ 100,00).
-  > * **Formas Combinadas**: Como o valor ultrapassa R$ 2.000,00, você também pode combinar formas de pagamento (ex.: entrada no PIX + saldo no cartão em 12x).
+  > 2. **Yamaha C40 Nylon Natural**
+  >    * Preco de Tabela: R$ 599,90
+  >    * A vista no PIX (5% de desconto): R$ 569,91
+  >    * Parcelamento: ate 12x de R$ 49,99 sem juros
+  >    * Estoque: 12 unidades disponiveis
+  >    * Perfil: Tampo em Spruce, acabamento tradicional e referencia para estudantes.
   >
-  > Temos 5 unidades a pronta entrega no estoque! Posso separar um para você?"
-
----
-
-## Conversa 3: Aplicação de Políticas de Devolução e Arrependimento (CDC)
-> **Cenário Não Trivial**: Cliente comprou online e quer exercer o direito de arrependimento.
-> **Ferramenta executada**: `get_store_policies(topic_or_query='arrependi devolução compra')`
-
-* **Cliente**: "Comprei um teclado pelo site mas me arrependi da minha compra, chegou ontem. Posso devolver meu pedido e pegar meu dinheiro de volta?"
-* **Assistente**:
-  > "Pode sim, fique tranquilo! A Empório da Música cumpre rigorosamente o Código de Defesa do Consumidor (Art. 49).
+  > 3. **Shelby SN-100 Folk Aco Preto**
+  >    * Preco de Tabela: R$ 549,00
+  >    * A vista no PIX (5% de desconto): R$ 521,55
+  >    * Parcelamento: ate 12x de R$ 45,75 sem juros
+  >    * Estoque: 5 unidades disponiveis
+  >    * Perfil: Estilo Folk com cordas de aco.
   >
-  > Como a sua compra foi online e você recebeu o produto ontem, você tem direito de solicitar a devolução por **arrependimento em até 7 (sete) dias corridos** após o recebimento, sem necessidade de justificativa.
-  >
-  > **Como funciona o procedimento:**
-  > 1. O produto deve estar na embalagem original, sem sinais de uso, acompanhado de todos os manuais, fontes e acessórios originais.
-  > 2. O **frete de devolução é por conta da loja** (nós geramos uma autorização de postagem reversa dos Correios ou coleta sem custo para você).
-  > 3. Assim que o item chega à loja e passa pela conferência, o estorno/reembolso é efetuado na mesma forma de pagamento original em até **10 dias úteis**.
-  >
-  > Para darmos entrada, você só precisa nos passar o **número do seu pedido** ou seu e-mail cadastrado!"
+  > Para entregas na regiao metropolitana de Campo Grande acima de R$ 500,00 o frete e gratuito via motoboy proprio. Gostaria de mais detalhes sobre algum desses modelos?"
 
 ---
 
-## Conversa 4: Guardrail de Escopo e Política de Acessórios (Regra Rígida de Negócio)
-> **Cenário**: Cliente solicita itens que a loja NÃO comercializa (cordas avulsas, palhetas e amplificadores).
-> **Ação**: Ativação do Guardrail de Escopo sem gasto inútil de tokens, recusa cordial e redirecionamento.
+## Conversa 2: Consulta Especifica de Instrumento e Regras de Pagamento
+* **Cenario**: Consulta sobre modelo especifico (Takamine GD20), calculo de desconto a vista no PIX e regras de parcelamento sem juros.
+* **Ferramentas Executadas**: `get_product_details(name_or_id='Takamine GD20')` e `get_store_policies(topic_or_query='pagamento pix parcelamento')`
+* **Entrada do Cliente**: "Quanto custa o Takamine GD20? Como funciona o pagamento parcelado e no PIX?"
+* **Resposta do Agente**:
+  > "O Takamine GD20 (modelo Folk Dreadnought com tampo solido em cedro) esta disponivel em nosso estoque pelo valor de tabela de **R$ 2.199,00** (temos 5 unidades disponiveis).
+  >
+  > Nossas condicoes de pagamento:
+  > * **A vista no PIX**: 5% de desconto sobre o preco de tabela, totalizando **R$ 2.089,05** (economia de R$ 109,95).
+  > * **Cartao de Credito**: Parcelamento em ate **12x de R$ 183,25 sem juros**, em conformidade com a parcela minima de R$ 100,00 da loja.
+  > * **Condicoes Especiais**: Por se tratar de uma compra acima de R$ 2.000,00, e permitida a combinacao de formas de pagamento (ex.: entrada no PIX com abatimento de saldo em cartao de credito)."
 
-* **Cliente**: "Vocês vendem encordoamento de guitarra 0.10, palhetas Fender e amplificador de 50W?"
-* **Assistente**:
-  > "Olá! Aqui na Empório da Música nós trabalhamos **exclusivamente com a venda de instrumentos musicais completos** (guitarras, baixos, violões, baterias, teclados, pianos, sopros e orquestrais). 
+---
+
+## Conversa 3: Aplicacao de Politicas de Devolucao e Arrependimento (CDC)
+* **Cenario**: Cliente adquiriu produto pelo canal online e manifesta arrependimento de compra dentro do prazo legal.
+* **Ferramenta Executada**: `get_store_policies(topic_or_query='arrependi devolucao compra')`
+* **Entrada do Cliente**: "Comprei um teclado pelo site mas me arrependi da minha compra, chegou ontem. Posso devolver meu pedido e receber o reembolso?"
+* **Resposta do Agente**:
+  > "Sim, a devolucao e garantida conforme o Codigo de Defesa do Consumidor (Artigo 49).
   >
-  > Nós **não comercializamos acessórios avulsos** como encordoamentos, palhetas, cabos, pedais ou amplificadores.
+  > Para compras realizadas em nossos canais online, voce possui ate **7 (sete) dias corridos** apos a data de recebimento para solicitar a devolucao por direito de arrependimento, sem necessidade de justificativa.
   >
-  > Para esses itens, recomendamos lojas parceiras especializadas em áudio e acessórios no centro de Campo Grande! 
+  > Procedimentos operacionais:
+  > 1. O instrumento deve ser devolvido em sua embalagem original, sem sinais de utilizacao ou avarias, acompanhado de manuais, cabos e acessorios de fabrica.
+  > 2. O custo do frete de devolucao e integralmente coberto pela Emporio da Musica atraves de autorizacao de postagem reversa.
+  > 3. O estorno/reembolso financeiro e realizado na mesma modalidade de pagamento original em ate 10 dias uteis apos a conferencia fisica do item em nossa central.
   >
-  > Se você estiver buscando um instrumento musical para o seu setup, fico à total disposição para te apresentar nossos modelos disponíveis!"
+  > Por favor, informe o numero do pedido ou o e-mail cadastrado para que possamos iniciar o procedimento de devolucao."
+
+---
+
+## Conversa 4: Guardrail de Escopo e Politica de Acessorios
+* **Cenario**: Cliente solicita itens nao comercializados pela loja (cordas avulsas, palhetas e amplificadores).
+* **Acao**: Bloqueio deterministico imediato na camada de Guardrail de escopo antes do envio da requisicao ao modelo.
+* **Entrada do Cliente**: "Voces vendem encordoamento de guitarra 0.10, palhetas Fender e amplificador de 50W?"
+* **Resposta do Agente**:
+  > "A Emporio da Musica atua com especializacao exclusiva na comercializacao de instrumentos musicais completos (violões, guitarras, contrabaixos, baterias, teclados, pianos, instrumentos de sopro e orquestrais).
+  >
+  > A loja nao comercializa acessorios avulsos, tais como encordoamentos avulsos, palhetas, cabos, pedais de efeito, amplificadores ou cases.
+  >
+  > Recomendamos a busca desses insumos em lojas especializadas em audio e acessorios localizadas na regiao central de Campo Grande. Estamos a disposicao para atende-lo na selecao e compra de instrumentos musicais de nosso catalogo."
 
 ---
 
 ## Conversa 5: Rastreamento de Pedido em Tempo Real com Dados do Banco
-> **Cenário**: Cliente quer saber onde está sua compra realizada.
-> **Ferramenta executada**: `check_order_status(order_id=1)`
-
-* **Cliente**: "Boa tarde! Gostaria de saber o status do meu pedido 1. Quando chega?"
-* **Assistente**:
-  > "Boa tarde! Consultei aqui no nosso sistema:
+* **Cenario**: Cliente consulta o status logistico de uma compra utilizando o identificador de pedido.
+* **Ferramenta Executada**: `check_order_status(order_id=1)`
+* **Entrada do Cliente**: "Boa tarde, gostaria de verificar o status do meu pedido 1. Quando chega?"
+* **Resposta do Agente**:
+  > "Boa tarde. Seguem os dados atualizados do pedido consultado em nosso sistema operacional:
   >
   > * **Pedido**: #1
   > * **Cliente**: Lucas Mendes da Silva
-  > * **Data da Compra**: 15/10/2025
-  > * **Status Atual**: **Entregue ao destinatário** ✅
-  > * **Itens**: 1x Roland FP-30X Piano Digital Preto
-  > * **Forma de Pagamento**: PIX (R$ 11.499,00)
-  > * **Código de Rastreamento**: `BRAB1234567BR`
+  > * **Data do Pedido**: 15/10/2025
+  > * **Status Atual**: Entregue ao destinatario
+  > * **Item**: 1x Roland FP-30X Piano Digital Preto
+  > * **Valor Total**: R$ 11.499,00 (Pagamento via PIX)
+  > * **Codigo de Rastreamento**: BRAB1234567BR
   > * **Data de Entrega Registrada**: 25/10/2025
   >
-  > Consta em nosso sistema que o pacote foi entregue com sucesso! Caso tenha ocorrido qualquer problema com a entrega ou precise de suporte técnico sobre o instrumento, me avise que aciono a equipe de pós-venda imediatamente."
+  > O pedido consta como entregue no endereco cadastrado. Caso tenha ocorrido qualquer inconsistencia na entrega ou necessite de assistencia referente a garantia de 90 dias, favor nos contatar."

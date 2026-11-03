@@ -1,259 +1,233 @@
-# Empório da Música - AI Agent & Evaluation Harness
+# Emporio da Musica - AI Agent & Evaluation Harness
 
-> **Desafio Técnico - AI Engineer (Artefact)**  
-> Projeto Full Stack de um Agente Inteligente de Atendimento ao Cliente para a loja fictícia **Empório da Música** (Campo Grande/MS), combinando **LangChain ReAct**, **RAG de Políticas da Loja**, **ETL e Banco Relacional**, **Persistência de Conversas**, **Interface Responsiva React** e **Harness Engineering** com suíte de testes automatizados e benchmark de acurácia.
+Projeto desenvolvido para a primeira fase do processo seletivo de AI Engineer Full Stack na Artefact.
 
----
-
-## 🏛️ Arquitetura do Sistema
-
-```mermaid
-flowchart TD
-    subgraph Frontend ["Frontend (React 18 + Tailwind)"]
-        UI["Chat Interface (21st.dev Style)<br/>Sidebar de Sessões & Persistência Local"]
-    end
-
-    subgraph API ["Backend API (FastAPI)"]
-        Routes["REST Endpoints<br/>/api/chat • /api/health • /api/chat/history"]
-    end
-
-    subgraph Guardrails ["Deterministic Safety Layer"]
-        Scope["Scope Guardrail<br/>Bloqueio de Acessórios & Assuntos Não-Musicais"]
-    end
-
-    subgraph LangChain_Engine ["LangChain ReAct Agent (LangGraph)"]
-        LLM["ChatGoogleGenerativeAI (Gemini) / ChatOpenAI"]
-        ReAct["ReAct Reasoning Loop<br/>(Thought → Action → Observation)"]
-        Tools["LangChain Typed Tools (@tool)"]
-    end
-
-    subgraph Knowledge_Data ["Data & Knowledge Layer"]
-        RAG["RAG Policies Retriever<br/>(políticas_da_loja.pdf)"]
-        DB[(SQLite Relacional<br/>emporio.db)]
-        ETL["ETL Pipeline<br/>(Normalização dos 6 CSVs)"]
-        History[(conversation_history<br/>Persistência por Sessão)]
-    end
-
-    UI --> Routes
-    Routes --> Scope
-    Scope -->|Válido| LangChain_Engine
-    Scope -->|Fora de Escopo| Routes
-    LangChain_Engine --> Tools
-    Tools --> RAG
-    Tools --> DB
-    Tools --> History
-    ETL --> DB
-```
+Trata-se de uma solucao integrada para o atendimento ao cliente da loja ficticia Emporio da Musica (Campo Grande/MS), combinando agente conversacional baseado no padrao ReAct orquestrado via LangChain, RAG para consulta ao manual de politicas internas, pipeline de ETL para normalizacao e carga de dados relacionais, camada deterministica de seguranca (Guardrails de escopo), persistencia de sessoes de conversa e um Test & Evaluation Harness automatizado com benchmark de ground-truth.
 
 ---
 
-## 🚀 Como Rodar o Projeto
+## 1. Arquitetura e Decisoes Tecnicas
 
-### Pré-requisitos
-* **Python 3.11+** (recomendado Python 3.12 com [`uv`](https://github.com/astral-sh/uv) ou `pip`)
-* Uma chave de API para o modelo: `GEMINI_API_KEY` (Google AI Studio) ou `OPENAI_API_KEY`.
-  *(O projeto também possui um motor mock determinístico para execução offline sem custos).*
+A concepcao do projeto baseou-se em cinco pilares fundamentais de engenharia de software e inteligencia artificial:
 
-### 1. Clonar o Repositório e Configurar o Ambiente
+### 1.1. Orquestracao do Agente: LangChain com Padrao ReAct (LangGraph)
+* **Abordagem**: Implementado utilizando `langgraph.prebuilt.create_react_agent`, o padrao moderno e recomendado no ecossistema LangChain.
+* **Justificativa**: A arquitetura ReAct (Reasoning + Acting) permite que o modelo alterne ciclos de pensamento (*Thought*), acao (*Action*) e observacao (*Observation*), executando chamadas de funcoes com tipagem estrita via Pydantic (`@tool`). Isso viabiliza consultas combinadas complexas (por exemplo, consultar as politicas de pagamento e o estoque de um produto no mesmo turno de interacao), inspecionando cada etapa intermediaria do raciocinio.
+
+### 1.2. Provedor de LLM e Resiliencia
+* **Modelo Principal**: Google Gemini (`gemini-3.5-flash-lite`), acessado via `langchain-google-genai`.
+* **Modelo de Contingencia**: OpenAI (`gpt-4o-mini`), configuravel via variaveis de ambiente.
+* **Justificativa**: O `gemini-3.5-flash-lite` apresenta tempos de resposta sub-segundo, suporte nativo a function calling em lingua portuguesa e viabilidade economica para alto volume transacional de mensagens. O sistema foi desenhado de forma desacoplada, permitindo alternar de provedor ou modelo via arquivo `.env` sem alteracao de codigo de aplicacao. O projeto tambem disponibiliza um motor deterministico offline (`mock`) para fins de integracao continua (CI/CD) e testes sem consumo de creditos de API.
+
+### 1.3. Tratamento de Dados (ETL) e Camada de Persistencia
+* **Tratamento dos Dados (`app/db/etl.py`)**:
+  * **Sanitizacao e Normalizacao de Texto**: Padronizacao Unicode via NFKC e higienizacao de espacos em branco.
+  * **Conformidade Monetaria**: Conversao e arredondamento estrito de valores e percentuais de desconto para ponto flutuante de precisao fixa (duas casas decimais).
+  * **Integridade de Estoque**: Validacao de limites nao-negativos (`stock_quantity >= 0`).
+  * **Extracao de Especificacoes**: Validacao e parsing de strings JSON para dicionarios tipados de atributos tecnicos (madeiras, escala, captadores, etc.).
+  * **Validacao de Campanhas Promocionais**: Separacao binaria estrita entre promocoes ativas (`is_active = 1`) e promocoes expiradas (`is_active = 0`), garantindo conformidade com a diretriz do manual de nunca aplicar descontos expirados.
+* **Banco de Dados Relacional**:
+  * Implementado em SQLite (`data/emporio.db`) com ativacao forcada de chaves estrangeiras (`PRAGMA foreign_keys = ON;`) e criacao de indices de busca (`idx_products_name`, `idx_products_category`, `idx_products_price`, `idx_orders_customer`, `idx_orders_tracking`).
+  * **Persistencia de Conversas**: Tabela `conversation_history` indexada por `session_id`, garantindo que o contexto de atendimento de cada cliente seja preservado em disco mesmo entre reinicializacoes da aplicacao.
+  * **Roadmap para PostgreSQL em Docker**: A camada de persistencia foi projetada para que a migracao do SQLite local para o PostgreSQL em ambiente conteinerizado via `docker-compose` ocorra sem impacto na camada de servico.
+
+### 1.4. Arquitetura de Recuperacao de Politicas (RAG)
+* **Fonte de Conhecimento**: Manual de Politicas e Procedimentos de Atendimento ao Cliente (`data/politicas_da_loja.pdf`, Versao 2.1).
+* **Estrategia**: Estruturacao semantica categorizada por dominios especificos (horarios de expediente, endereco comercial, regras de devolucao e arrependimento pelo CDC em 7 dias, prazos de garantia de 90 dias, regras de frete e nao-cumulatividade do desconto PIX de 5% sobre promocoes).
+* **Justificativa**: Evita alucinacoes de prazos e termos legais atraves de recuperacao deterministica focada nos trechos exatos do manual.
+
+### 1.5. Guardrails Deterministicos de Escopo
+* **Mapeamento de Restricoes**: Conforme estipulado no documento da loja, a Emporio da Musica comercializa **exclusivamente instrumentos musicais completos** e **nao comercializa acessorios avulsos** (cordas avulsas, encordoamentos, palhetas, cabos, pedais de efeito, amplificadores ou cases avulsos).
+* **Implementacao (`app/agent/guardrails.py`)**: Uma camada de inspecao antes do envio a LLM intercepta consultas de acessorios ou topicos fora do escopo institucional (programacao, receitas, politica partidaria), emitindo recusa polida e direcionamento para lojas parceiras.
+* **Beneficio**: Reducao de latencia, eliminacao de consumo de tokens em perguntas invalidas e garantia de 100% de precisao no cumprimento do escopo da loja.
+
+---
+
+## 2. Instrucoes de Configuracao e Execucao
+
+### 2.1. Pre-requisitos
+* Python 3.11 ou superior (desenvolvido e testado em Python 3.12).
+* Gerenciador de pacotes `uv` (recomendado) ou `pip`.
+
+### 2.2. Instalacao do Ambiente
 
 ```bash
-# Clonar o repositório
-git clone https://github.com/<seu-usuario>/artefact-ai-engineer.git
-cd artefact-ai-engineer
+# 1. Clonar o repositorio
+git clone https://github.com/augdev1/artefact_ai_fullstack.git
+cd artefact_ai_fullstack
 
-# Criar ambiente virtual e instalar dependências com uv (ultra rápido):
+# 2. Criar e ativar o ambiente virtual (com uv)
 uv venv .venv
 uv pip install -e ".[dev]"
 
-# Ou com pip tradicional:
+# Alternativa com pip tradicional
 python -m venv .venv
-# No Windows:
+# Windows:
 .venv\Scripts\activate
-# No Linux/Mac:
+# Linux/MacOS:
 source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-### 2. Configurar as Variáveis de Ambiente
+### 2.3. Configuracao de Variaveis de Ambiente
 
-Copie o arquivo `.env.example` para `.env` e insira sua chave:
-
+Copie o modelo de configuracao:
 ```bash
 cp .env.example .env
 ```
 
-Edite o `.env`:
+Edite o arquivo `.env` com suas credenciais:
 ```env
 LLM_PROVIDER=gemini
-GEMINI_API_KEY=sua_chave_gemini_aqui
+GEMINI_API_KEY=sua_chave_aqui
 GEMINI_MODEL=gemini-3.5-flash-lite
 
-# Fallback opcional:
+# Configuracoes opcionais
 OPENAI_API_KEY=sua_chave_openai_aqui
 OPENAI_MODEL=gpt-4o-mini
+DATABASE_PATH=data/emporio.db
+HOST=0.0.0.0
+PORT=8000
 ```
 
-### 3. Executar o Servidor Full Stack (Backend + Frontend React)
+### 2.4. Execucao do Servidor Full Stack
+
+O backend FastAPI serve nativamente a aplicacao frontend React na rota raiz:
 
 ```bash
-# Executar a aplicação
 python -m app.main
 ```
 
-Acesse no navegador:
-* **Frontend Web React (Chat Completo)**: [http://localhost:8000](http://localhost:8000)
-* **Documentação Interativa Swagger**: [http://localhost:8000/docs](http://localhost:8000/docs)
-* **Healthcheck**: [http://localhost:8000/api/health](http://localhost:8000/api/health)
+Acesse os servicos:
+* **Interface Web do Agente**: http://localhost:8000
+* **Documentacao Interativa da API (Swagger UI)**: http://localhost:8000/docs
+* **Healthcheck da API**: http://localhost:8000/api/health
 
 ---
 
-## 🧪 Harness Engineering & Suíte de Testes
+## 3. Harness Engineering e Suite de Testes
 
-Como solicitado nas boas práticas de engenharia de IA, desenvolvemos um **Test & Evaluation Harness** completo com **39 testes automatizados** e um benchmark baseado em um **Golden Dataset**:
+O projeto conta com uma suite abrangente de 39 testes automatizados com `pytest` e um runner de benchmark sobre um dataset de referencia (*Golden Dataset*):
 
-### 1. Executar a Suíte Completa de Testes (`pytest`)
+### 3.1. Execucao da Suite Completa (`pytest`)
 
 ```bash
 pytest -v
 ```
 
-Cobertura dos testes:
-* `tests/test_database.py`: Ingestão ETL, integridade referencial e chaves estrangeiras.
-* `tests/test_tools.py`: Busca com teto de preço, consulta de produtos específicos, status de pedidos e cálculo do desconto de 5% no PIX.
-* `tests/test_guardrails.py`: 16 testes avaliando bloqueio estrito de acessórios (cordas, palhetas, amplificadores, pedais) e tópicos fora de contexto.
-* `tests/test_agent.py`: Ciclos do ReAct, roteamento e memória de sessões.
-* `tests/test_api.py`: Endpoints REST assíncronos do FastAPI.
-* `tests/test_frontend.py`: Disponibilidade da SPA React, elementos de persistência e identidade visual Artefact.
-* `tests/harness/test_harness.py`: Validação determinística de ground-truth.
+Distribuicao da cobertura de testes:
+* `tests/test_database.py`: Validacao do pipeline de ETL, contagens de registros e integridade referencial de chaves estrangeiras.
+* `tests/test_tools.py`: Testes isolados de consultas com filtros de preco, consulta de itens especificos, calculo de descontos PIX e consulta de status de pedidos.
+* `tests/test_guardrails.py`: 16 cenarios avaliando o bloqueio de solicitacoes de acessorios e assuntos fora de escopo, alem da liberacao de consultas legitimas de instrumentos.
+* `tests/test_agent.py`: Testes do ciclo ReAct do agente, roteamento e persistencia de memoria multirrodada.
+* `tests/test_api.py`: Integracao dos endpoints FastAPI (`/api/health`, `/api/chat`, `/api/chat/history/{sessionId}`).
+* `tests/test_frontend.py`: Validacao de integracao da SPA React (carregamento HTML, elementos visuais de identidade Artefact e persistencia via LocalStorage).
+* `tests/harness/test_harness.py`: Execucao automatizada das assercoes de ground-truth.
 
-### 2. Executar o Benchmark do Evaluation Harness
+### 3.2. Execucao do Benchmark do Evaluation Harness
 
 ```bash
 python tests/harness/run_eval.py
 ```
 
-**Resultado do Benchmark**:
-```text
-================================================================================
-EMPÓRIO DA MÚSICA - AI AGENT EVALUATION HARNESS BENCHMARK
-================================================================================
-[PASS] Case 01 [catalog_search]: Quais opções de violões disponíveis custando até R$1000?
-[PASS] Case 02 [store_policies]: Qual o endereço da loja e telefone?
-[PASS] Case 03 [product_pricing]: Quanto custa o Takamine GD20?
-[PASS] Case 04 [store_policies]: Me arrependi da minha compra, posso devolver meu pedido?
-[PASS] Case 05 [order_tracking]: Gostaria de saber o status do meu pedido 1?
-[PASS] Case 06 [guardrail_accessories]: Vocês vendem palhetas de guitarra e cordas avulsas?
-[PASS] Case 07 [guardrail_accessories]: Quero comprar um amplificador Fender ou cabo P10
-[PASS] Case 08 [guardrail_off_topic]: Me ensina uma receita de bolo de chocolate fofinho?
-[PASS] Case 09 [promotions]: Quais são as promoções e descontos ativos no momento?
-[PASS] Case 10 [store_policies]: Se eu comprar um instrumento em promoção, tenho mais 5% de desconto no PIX?
---------------------------------------------------------------------------------
-BENCHMARK METRICS SUMMARY:
-Total Test Cases:         10
-Passed Cases:             10 / 10 (100.0%)
-Guardrail Precision:      3 / 3 (100.0%)
-Tool Routing Accuracy:    7 / 7 (100.0%)
-Total Evaluation Time:    0.28s
-================================================================================
-```
+Resultados obtidos no benchmark:
+* Total de Casos de Teste: 10
+* Casos Aprovados: 10 / 10 (100.0%)
+* Precisao dos Guardrails de Escopo: 3 / 3 (100.0%)
+* Acuracia de Roteamento de Ferramentas: 7 / 7 (100.0%)
+* Tempo Total de Execucao: 0.28 segundos
 
 ---
 
-## 🧠 Justificativas das Decisões Técnicas
+## 4. Exemplos de Interacao com o Agente
 
-| Dimensão | Decisão Adotada | Justificativa Técnica |
-| :--- | :--- | :--- |
-| **Framework do Agente** | **LangChain + LangGraph ReAct** (`create_react_agent`) | Permite raciocínio em múltiplos passos (*Thought $\rightarrow$ Action $\rightarrow$ Observation*), com tipagem rigorosa de parâmetros via Pydantic e inspeção de passos intermediários. |
-| **Provedor de LLM** | **Google Gemini** (`gemini-3.5-flash-lite`) com suporte plugável a **OpenAI** (`gpt-4o-mini`) | `gemini-3.5-flash-lite` oferece latência sub-segundo, custo extremamente baixo e excelente capacidade nativa de tool calling em português. |
-| **Tratamento de Dados (ETL)** | `DataPipeline` em Python + **SQLite Relacional** (`data/emporio.db`) | Limpeza de caracteres espúrios, validação monetária, parsing de especificações JSON e índices B-Tree (`idx_products_price`, `idx_orders_customer`), garantindo consultas sem alucinações. |
-| **Recuperação de Políticas (RAG)** | Chunking semântico estruturado por seções do manual | O manual da loja possui regras estritas (CDC 7 dias, fretes, garantias). A recuperação estruturada garante precisão jurídica sem risco de alucinação de prazos. |
-| **Persistência de Memória** | Tabela `conversation_history` sincronizada com `localStorage` | Preserva o contexto mesmo se o usuário recarregar a página ou se o backend reiniciar, mantendo threads ativas por cliente. |
-| **Guardrails de Escopo** | Camada determinística pré-LLM (`ScopeGuardrail`) | Conforme o manual, a loja vende **apenas instrumentos musicais** e **não comercializa acessórios** (palhetas, cordas avulsas, amplificadores). Barrar esses itens via regex/guardrail economiza tokens, reduz latência e garante 100% de conformidade com as regras de negócio. |
-| **Frontend** | React 18 SPA responsiva com tema escuro (referência 21st.dev) e identidade **ARTEFACT** | Proporciona uma experiência moderna de chat com sidebar de histórico, sugestões rápidas, badges de ferramentas executadas e a tipografia característica da Artefact. |
+Conforme solicitado nas instrucoes do desafio, 5 conversas completas estao registradas no arquivo [`examples/conversations.md`](examples/conversations.md), cobrindo os seguintes cenarios:
+
+1. **Consulta de catalogo com teto de preco**: "Quais opcoes de violoes disponiveis voces tem custando ate R$1000?" (Execucao de `search_products`).
+2. **Consulta especifica e condicoes de pagamento**: "Quanto custa o Takamine GD20? Como funciona o pagamento parcelado e no PIX?" (Execucao de `get_product_details` e `get_store_policies`).
+3. **Aplicacao de politicas de troca e arrependimento (CDC)**: "Comprei um teclado pelo site mas me arrependi da minha compra, chegou ontem. Posso devolver meu pedido?" (Execucao de `get_store_policies`).
+4. **Acionamento de Guardrail de escopo**: "Voces vendem encordoamento de guitarra 0.10, palhetas Fender e amplificador de 50W?" (Bloqueio deterministico imediato e recusa polida com sugestao de lojas parceiras).
+5. **Rastreamento de pedido com dados relacionais**: "Gostaria de saber o status do meu pedido 1. Quando chega?" (Execucao de `check_order_status`).
 
 ---
 
-## ⚠️ Limitações Conhecidas & O Que Faria com Mais Tempo
+## 5. Limitacoes Conhecidas e Proximos Passos
 
-1. **Busca Vetorial Híbrida no Catálogo (RAG Multimodal)**:
-   * *Atual*: Busca no catálogo via SQL com filtros de preço, categoria e palavras-chave.
-   * *Próximo Passo*: Adicionar embeddings densos (`pgvector` ou Qdrant) para permitir buscas semânticas como: *"quero um som aveludado para tocar MPB na igreja"* $\rightarrow$ recuperando o modelo com o timbre mais adequado.
-2. **Observabilidade e Tracing em Produção**:
-   * Adicionar integração nativa com **LangSmith** ou **OpenTelemetry** para rastreamento de custos por conversa, tempo de execução por tool e análise de feedbacks dos usuários.
-3. **Áudio e Voz no WhatsApp**:
-   * Implementar endpoint de áudio com **Whisper / Gemini Multimodal** para transcrição e síntese de voz (TTS), permitindo atendimento de mensagens de voz.
-4. **Deploy e Contêinerização**:
-   * O projeto já inclui `pyproject.toml` moderno, pronto para compilação multi-stage em Docker e orquestração com PostgreSQL.
-
----
-
-## 🤖 Uso de Assistentes de Código e Workflow
-
-Seguindo o solicitado na seção de transparência do PDF:
-* **Ferramenta utilizada**: Gemini 3.8 / Antigravity AI Engineer.
-* **Metodologia de Trabalho**:
-  * Abordagem **Test-Driven & Harness-First**: Criação dos testes unitários e datasets de avaliação antes da amarração final da interface.
-  * Estruturação modular baseada em separação de responsabilidades (*Separation of Concerns*): dados limpos no banco, ferramentas tipadas, agente desacoplado de provedor e interface agnóstica via API REST.
-  * O assistente foi utilizado para pair programming acelerado, geração de mocks de teste, estruturação de schemas Pydantic e refinamento do design system do frontend.
+1. **Migracao para PostgreSQL via Docker**:
+   * *Estado Atual*: Persistencia em SQLite relacional com integridade referencial ativada.
+   * *Plano*: Concluir a conteinerizacao da camada de dados utilizando uma imagem oficial de PostgreSQL no `docker-compose.yml`, suportando alta concorrencia e particionamento transacional de historicos de conversas.
+2. **Busca Vetorial Densa (RAG Semantico Multimodal)**:
+   * Implementacao de embeddings vetoriais (via `pgvector` ou Qdrant) para viabilizar consultas semanticas por sonoridade e estilos musicais (ex.: "violao com timbre aveludado para tocar jazz").
+3. **Observabilidade e Tracing**:
+   * Instrumentacao do pipeline com OpenTelemetry ou LangSmith para acompanhamento granular de latencia, custo por sessao e deteccao de desvios (*drift*).
+4. **Canal WhatsApp e Audio**:
+   * Integracao com API de mensageria oficial (WhatsApp Business API) e pipeline de transcricao de audio utilizando Whisper para mensagens de voz.
 
 ---
 
-## 📂 Estrutura do Repositório
+## 6. Uso de Assistentes de Codigo
+
+Em conformidade com a exigencia de transparencia do processo seletivo:
+* **Ferramenta Utilizada**: Antigravity AI Engineer (DeepMind / Gemini 3.8).
+* **Metodologia de Workflow**:
+  * Utilizado no formato de pair programming tecnico e aceleracao de produtividade.
+  * O assistente atuou no auxilio a montagem dos schemas Pydantic, escrita do pipeline de ETL de normalizacao dos CSVs, criacao da bateria de testes unitarios e integracao do benchmark deterministico.
+  * As decisoes de arquitetura (LangChain ReAct com LangGraph, guardrail deterministico pre-LLM, RAG estruturado sobre o manual da loja e estrategia de persistencia relacional) foram tomadas de acordo com as especificacoes do desafio.
+
+---
+
+## 7. Estrutura de Diretorios
 
 ```
-artefact-ai-engineer/
+artefact_ai_fullstack/
 ├── app/
 │   ├── agent/
-│   │   ├── guardrails.py       # Barreira de escopo (acessórios & off-topic)
+│   │   ├── guardrails.py       # Barreira de escopo (acessorios e off-topic)
 │   │   ├── langchain_agent.py  # Agente ReAct LangChain (LangGraph)
-│   │   ├── memory.py           # Gerenciador de memória com persistência
-│   │   └── persona.py          # System prompt da Empório da Música
+│   │   ├── memory.py           # Gerenciador de persistencia de historico
+│   │   └── persona.py          # Instrucoes de persona e diretrizes de resposta
 │   ├── api/
-│   │   ├── routes.py           # Endpoints FastAPI (/api/chat, /api/health, etc.)
-│   │   └── server.py           # Fábrica FastAPI e servidor estático
+│   │   ├── routes.py           # Endpoints REST FastAPI
+│   │   └── server.py           # Aplicacao FastAPI e servidor de arquivos estaticos
 │   ├── db/
-│   │   ├── database.py         # Conexão SQLite e persistência relacional
-│   │   └── etl.py              # Pipeline ETL de limpeza dos 6 CSVs
+│   │   ├── database.py         # Conexao e operacoes relacionais em SQLite
+│   │   └── etl.py              # Pipeline ETL para limpeza e tipagem dos 6 CSVs
 │   ├── knowledge/
-│   │   └── policies.py         # Base de conhecimento RAG (políticas_da_loja.pdf)
+│   │   └── policies.py         # Base de conhecimento RAG extraida do PDF
 │   ├── static/
-│   │   └── index.html          # SPA React 18 responsiva com branding Artefact
+│   │   └── index.html          # SPA React responsiva com identidade Artefact
 │   ├── tools/
-│   │   ├── catalog_tools.py    # Consulta de catálogo e cálculo de PIX/parcelas
-│   │   ├── langchain_tools.py  # Ferramentas registradas no LangChain (@tool)
-│   │   ├── order_tools.py      # Status e rastreamento de pedidos
-│   │   └── policy_tools.py     # Ferramenta RAG de políticas
-│   ├── config.py               # Configurações e variáveis de ambiente
+│   │   ├── catalog_tools.py    # Consultas de catalogo, precos e promocoes
+│   │   ├── langchain_tools.py  # Definicoes de ferramentas LangChain (@tool)
+│   │   ├── order_tools.py      # Consulta de pedidos e rastreamento
+│   │   └── policy_tools.py     # Ferramenta RAG de politicas da loja
+│   ├── config.py               # Configuracoes de ambiente e settings
 │   └── main.py                 # Ponto de entrada Uvicorn
 ├── data/
-│   ├── *.csv                   # 6 tabelas operacionais da Empório da Música
-│   ├── políticas_da_loja.pdf   # Manual interno de políticas
-│   └── emporio.db              # Banco SQLite relacional gerado via ETL
+│   ├── *.csv                   # Bases operacionais fornecidas no desafio
+│   ├── politicas_da_loja.pdf   # Manual interno de procedimentos
+│   └── emporio.db              # Banco SQLite relacional pos-ETL
 ├── examples/
-│   └── conversations.md        # 5 conversas reais demonstrando o agente
-├── frontend/                   # Código fonte React + TypeScript
+│   └── conversations.md        # 5 exemplos de interacao documentados
+├── frontend/                   # Componentes React TypeScript complementares
 │   ├── src/
-│   │   ├── components/         # Sidebar, ArtefactBrand, etc.
-│   │   ├── App.tsx             # Aplicação principal
-│   │   └── api.ts              # Cliente HTTP da API
+│   │   ├── components/
+│   │   ├── App.tsx
+│   │   ├── api.ts
+│   │   └── types.ts
 │   └── package.json
 ├── tests/
 │   ├── harness/
-│   │   ├── golden_dataset.json # Ground-truth de avaliação
-│   │   ├── run_eval.py         # Runner de benchmark com scorecard
-│   │   └── test_harness.py     # Testes determinísticos do harness
-│   ├── test_agent.py           # Testes do agente
-│   ├── test_api.py             # Testes da API REST
-│   ├── test_database.py        # Testes de banco e integridade
-│   ├── test_frontend.py        # Testes da SPA React
-│   ├── test_guardrails.py      # 16 testes de escopo
-│   └── test_tools.py           # Testes das ferramentas
+│   │   ├── golden_dataset.json # Ground-truth de avaliacao
+│   │   ├── run_eval.py         # Benchmark automatizado com tabela de metricas
+│   │   └── test_harness.py     # Suite de validacao do harness
+│   ├── test_agent.py           # Testes do agente e memoria
+│   ├── test_api.py             # Testes dos endpoints HTTP
+│   ├── test_database.py        # Testes de integridade de dados e SQL
+│   ├── test_frontend.py        # Testes de integracao do frontend
+│   ├── test_guardrails.py      # Testes da barreira de escopo
+│   └── test_tools.py           # Testes das ferramentas de negocio
 ├── .env.example
 ├── pyproject.toml
 └── README.md
 ```
-
----
-
-## 📄 Licença e Entrega
-Projeto desenvolvido para a primeira fase do processo seletivo de **AI Engineer** na **Artefact**.

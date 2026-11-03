@@ -1,3 +1,4 @@
+
 """FastAPI Application Setup and Static Frontend Server."""
 
 from pathlib import Path
