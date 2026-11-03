@@ -83,3 +83,4 @@ def test_evaluation_harness_suite(golden_dataset, test_agent: LangChainAgent):
     print(f"\nEvaluation Harness Score: {passed_cases}/{total_cases} ({accuracy:.1f}%)")
 
     assert accuracy == 100.0, f"Harness failed on {len(failures)} cases:\n" + "\n".join([str(f) for f in failures])
+

@@ -5,8 +5,14 @@
     "user_query": "Quais opções de violões disponíveis custando até R$1000?",
     "expected_tool": "search_products",
     "expected_guardrail": false,
-    "required_in_response": ["viol", "R$"],
-    "forbidden_in_response": ["não temos nenhum", "esgotado"],
+    "required_in_response": [
+      "viol",
+      "R$"
+    ],
+    "forbidden_in_response": [
+      "não temos nenhum",
+      "esgotado"
+    ],
     "max_allowed_price": 1000.0
   },
   {
@@ -15,8 +21,15 @@
     "user_query": "Qual o endereço da loja e telefone?",
     "expected_tool": "get_store_policies",
     "expected_guardrail": false,
-    "required_in_response": ["Rua 14 de Maio", "3200", "Campo Grande"],
-    "forbidden_in_response": ["São Paulo", "Rio de Janeiro"]
+    "required_in_response": [
+      "Rua 14 de Maio",
+      "3200",
+      "Campo Grande"
+    ],
+    "forbidden_in_response": [
+      "São Paulo",
+      "Rio de Janeiro"
+    ]
   },
   {
     "id": "scenario_3_takamine_price",
@@ -24,8 +37,15 @@
     "user_query": "Quanto custa o Takamine GD20?",
     "expected_tool": "get_product_details",
     "expected_guardrail": false,
-    "required_in_response": ["Takamine GD20", "2,199", "PIX"],
-    "forbidden_in_response": ["R$ 500", "R$ 10.000"]
+    "required_in_response": [
+      "Takamine GD20",
+      "2,199",
+      "PIX"
+    ],
+    "forbidden_in_response": [
+      "R$ 500",
+      "R$ 10.000"
+    ]
   },
   {
     "id": "scenario_4_return_policy",
@@ -33,8 +53,15 @@
     "user_query": "Me arrependi da minha compra, posso devolver meu pedido?",
     "expected_tool": "get_store_policies",
     "expected_guardrail": false,
-    "required_in_response": ["7", "dias", "arrependimento"],
-    "forbidden_in_response": ["não aceitamos devolução", "30 dias para arrependimento"]
+    "required_in_response": [
+      "7",
+      "dias",
+      "arrependimento"
+    ],
+    "forbidden_in_response": [
+      "não aceitamos devolução",
+      "30 dias para arrependimento"
+    ]
   },
   {
     "id": "scenario_5_order_status",
@@ -42,8 +69,13 @@
     "user_query": "Gostaria de saber o status do meu pedido 1?",
     "expected_tool": "check_order_status",
     "expected_guardrail": false,
-    "required_in_response": ["pedido", "1"],
-    "forbidden_in_response": ["não encontramos nenhum pedido no sistema"]
+    "required_in_response": [
+      "pedido",
+      "1"
+    ],
+    "forbidden_in_response": [
+      "não encontramos nenhum pedido no sistema"
+    ]
   },
   {
     "id": "scenario_6_accessories_guardrail_picks",
@@ -52,8 +84,14 @@
     "expected_tool": null,
     "expected_guardrail": true,
     "guardrail_reason": "accessory_request",
-    "required_in_response": ["instrumentos", "não"],
-    "forbidden_in_response": ["temos palhetas por R$", "adicionei ao carrinho"]
+    "required_in_response": [
+      "instrumentos",
+      "não"
+    ],
+    "forbidden_in_response": [
+      "temos palhetas por R$",
+      "adicionei ao carrinho"
+    ]
   },
   {
     "id": "scenario_7_accessories_guardrail_amp",
@@ -62,8 +100,13 @@
     "expected_tool": null,
     "expected_guardrail": true,
     "guardrail_reason": "accessory_request",
-    "required_in_response": ["exclusivamente", "instrumentos"],
-    "forbidden_in_response": ["temos amplificadores"]
+    "required_in_response": [
+      "exclusivamente",
+      "instrumentos"
+    ],
+    "forbidden_in_response": [
+      "temos amplificadores"
+    ]
   },
   {
     "id": "scenario_8_off_topic_guardrail",
@@ -72,8 +115,14 @@
     "expected_tool": null,
     "expected_guardrail": true,
     "guardrail_reason": "off_topic",
-    "required_in_response": ["instrumentos musicais"],
-    "forbidden_in_response": ["ingredientes", "açúcar", "farinha"]
+    "required_in_response": [
+      "instrumentos musicais"
+    ],
+    "forbidden_in_response": [
+      "ingredientes",
+      "açúcar",
+      "farinha"
+    ]
   },
   {
     "id": "scenario_9_active_promotions",
@@ -81,8 +130,13 @@
     "user_query": "Quais são as promoções e descontos ativos no momento?",
     "expected_tool": "list_promotions",
     "expected_guardrail": false,
-    "required_in_response": ["promoç", "%"],
-    "forbidden_in_response": ["promoção expirada aplicada"]
+    "required_in_response": [
+      "promoç",
+      "%"
+    ],
+    "forbidden_in_response": [
+      "promoção expirada aplicada"
+    ]
   },
   {
     "id": "scenario_10_pix_promo_non_cumulativity",
@@ -90,7 +144,12 @@
     "user_query": "Se eu comprar um instrumento em promoção, tenho mais 5% de desconto no PIX?",
     "expected_tool": "get_store_policies",
     "expected_guardrail": false,
-    "required_in_response": ["não", "cumulativ"],
-    "forbidden_in_response": ["sim, você ganha mais 5% cumulativo"]
+    "required_in_response": [
+      "não",
+      "cumulativ"
+    ],
+    "forbidden_in_response": [
+      "sim, você ganha mais 5% cumulativo"
+    ]
   }
 ]
