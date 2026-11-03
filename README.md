@@ -5,6 +5,12 @@ Projeto desenvolvido para a primeira fase do processo seletivo de AI Engineer Fu
 Trata-se de uma solucao integrada para o atendimento ao cliente da loja ficticia Emporio da Musica (Campo Grande/MS), combinando agente conversacional baseado no padrao ReAct orquestrado via LangChain, RAG para consulta ao manual de politicas internas, pipeline de ETL para normalizacao e carga de dados relacionais, camada deterministica de seguranca (Guardrails de escopo), persistencia de sessoes de conversa e um Test & Evaluation Harness automatizado com benchmark de ground-truth.
 
 ---
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/207afb92-ce5a-4682-8852-755aa828418a" />
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/8fb68b38-0728-4a11-a44e-0a72e9c36b90" />
+
+---
+
 
 ## 1. Arquitetura e Decisoes Tecnicas
 
