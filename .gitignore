@@ -1,0 +1,38 @@
+# Python & Environments
+.venv/
+env/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.egg-info/
+build/
+dist/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment Variables & Secrets
+.env
+.env.local
+*.env
+
+# SQLite runtime DB (if generated at runtime, though we can track migrations or seed scripts)
+*.sqlite3
+*.db-journal
+
+# Frontend (for future React step)
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+.next/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
