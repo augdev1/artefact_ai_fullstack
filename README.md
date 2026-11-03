@@ -8,7 +8,7 @@ Trata-se de uma solucao integrada para o atendimento ao cliente da loja ficticia
 
 ## 1. Arquitetura e Decisoes Tecnicas
 
-A concepcao do projeto baseou-se em cinco pilares fundamentais de engenharia de software e inteligencia artificial:
+A concepcao do projeto baseou-se em seis pilares fundamentais de engenharia de software e inteligencia artificial:
 
 ### 1.1. Orquestracao do Agente: LangChain com Padrao ReAct (LangGraph)
 * **Abordagem**: Implementado utilizando `langgraph.prebuilt.create_react_agent`, o padrao moderno e recomendado no ecossistema LangChain.
@@ -40,6 +40,16 @@ A concepcao do projeto baseou-se em cinco pilares fundamentais de engenharia de 
 * **Mapeamento de Restricoes**: Conforme estipulado no documento da loja, a Emporio da Musica comercializa **exclusivamente instrumentos musicais completos** e **nao comercializa acessorios avulsos** (cordas avulsas, encordoamentos, palhetas, cabos, pedais de efeito, amplificadores ou cases avulsos).
 * **Implementacao (`app/agent/guardrails.py`)**: Uma camada de inspecao antes do envio a LLM intercepta consultas de acessorios ou topicos fora do escopo institucional (programacao, receitas, politica partidaria), emitindo recusa polida e direcionamento para lojas parceiras.
 * **Beneficio**: Reducao de latencia, eliminacao de consumo de tokens em perguntas invalidas e garantia de 100% de precisao no cumprimento do escopo da loja.
+
+### 1.6. Tecnologias e Stacks do Frontend
+A interface visual do usuario foi desenvolvida para atender aos requisitos de responsividade, estetica moderna em tema escuro, persistencia de estado e navegabilidade fluida:
+* **React 18**: Biblioteca base da Single Page Application (SPA), operando com hooks reativos (`useState`, `useEffect`, `useRef`, `useMemo`) para sincronizacao do historico de mensagens, gerenciamento de sessoes de chat e atualizacao otimista da interface.
+* **TypeScript**: Tipagem estatica e definicao formal dos contratos de dados (`Message`, `ChatSession`, `ChatResponse`, `HealthResponse`), garantindo integridade e previsibilidade no consumo da API REST.
+* **Tailwind CSS**: Framework utilitario para estilizacao e responsividade mobile-first, incluindo paleta customizada com o tom magenta institucional da Artefact (`#E60067`), classes de transicao para a barra lateral recolhivel (`w-72` / `w-0` com `overflow-hidden`) e design system escuro para componentes conversacionais.
+* **Marked.js**: Motor de parsing e compilacao de Markdown para HTML em tempo de execucao, garantindo que respostas contendo catalogos, especificacoes tecnicas, precos e regras de parcelamento sejam renderizadas com alinhamento visual, listas estruturadas e tipografia limpa, sem caracteres crus de formatacao.
+* **HTML5 LocalStorage API**: Camada de persistencia no navegador que preserva o identificador da sessao ativa e a listagem de conversas entre recarregamentos de pagina (F5), reconciliando os dados com o endpoint de historico do banco SQLite.
+* **Vite & Tooling**: Configuracao de build no diretorio `frontend/` suportando compilacao rapida, hot-reload em ambiente de desenvolvimento e empacotamento para producao.
+* **Identidade Visual e SVG Vetorial**: Recriacao grafica do logotipo **ARTEFACT** no topo da interface com espacamento uniforme (`tracking-[0.06em]`), glifos geometricos em chevron (`/\`) e linha de realce magenta, alem de iconografia dedicada para o usuario e o robo assistente.
 
 ---
 
