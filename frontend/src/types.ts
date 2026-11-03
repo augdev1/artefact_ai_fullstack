@@ -18,3 +18,4 @@ export interface ChatResponse {
   guardrail_triggered: boolean;
   guardrail_reason?: string;
 }
+

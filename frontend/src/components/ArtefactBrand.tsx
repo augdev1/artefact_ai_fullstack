@@ -27,3 +27,4 @@ export const ArtefactBrand: React.FC = () => {
     </div>
   );
 };
+

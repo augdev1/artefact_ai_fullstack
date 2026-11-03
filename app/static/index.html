@@ -44,8 +44,8 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Marked.js for Rich Markdown Rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <style>
     body {
@@ -79,6 +79,62 @@
       background: #13161F;
       border: 1px solid #1F2433;
     }
+    
+    /* Markdown Typography & Structure */
+    .markdown-body {
+      color: #CBD5E1;
+      font-size: 0.925rem;
+      line-height: 1.65;
+    }
+    .markdown-body p {
+      margin-bottom: 0.75rem;
+    }
+    .markdown-body p:last-child {
+      margin-bottom: 0;
+    }
+    .markdown-body strong {
+      color: #F8FAFC;
+      font-weight: 600;
+    }
+    .markdown-body em {
+      color: #94A3B8;
+      font-style: italic;
+    }
+    .markdown-body ul {
+      list-style-type: disc;
+      margin-left: 1.25rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.75rem;
+      space-y: 0.35rem;
+    }
+    .markdown-body li {
+      margin-bottom: 0.35rem;
+    }
+    .markdown-body li > ul {
+      margin-top: 0.25rem;
+      margin-bottom: 0.25rem;
+      list-style-type: circle;
+    }
+    .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+      color: #FFFFFF;
+      font-weight: 600;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .markdown-body h3 {
+      font-size: 1.05rem;
+      border-bottom: 1px solid #1F2433;
+      padding-bottom: 0.35rem;
+    }
+    .markdown-body code {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85em;
+      background: #1A1F2C;
+      color: #38BDF8;
+      padding: 0.15em 0.35em;
+      border-radius: 0.25rem;
+      border: 1px solid #2A334B;
+    }
     @keyframes pulse-subtle {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.6; }
@@ -93,33 +149,74 @@
 
   <!-- React Application -->
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect, useRef, useMemo } = React;
 
     // Artefact Chevron Logo Icon for the letter 'A'
-    const ArtefactLetterA = ({ className = "w-6 h-6 inline-block text-white" }) => (
+    const ArtefactLetterA = ({ className = "w-4 h-4 md:w-5 md:h-5 inline-block text-white" }) => (
       <svg 
         className={className} 
         viewBox="0 0 24 24" 
         fill="none" 
         stroke="currentColor" 
-        strokeWidth="3.2" 
+        strokeWidth="3.4" 
         strokeLinecap="round" 
         strokeLinejoin="round"
+        style={{ transform: "translateY(-1px)" }}
       >
-        <polyline points="4 21 12 3 20 21" />
+        <polyline points="3 21 12 3 21 21" />
       </svg>
     );
 
-    // Artefact Branding Top Component
+    // Artefact Branding Top Component (Letters close together, matching the original logo)
     const ArtefactTopBrand = () => (
       <div className="flex flex-col items-center justify-center select-none py-1">
-        <div className="flex items-center tracking-[0.28em] font-extrabold text-xl md:text-2xl text-white font-display">
-          <ArtefactLetterA className="w-5 h-5 md:w-6 md:h-6 mr-0.5 text-white" />
+        <div className="flex items-center tracking-[0.06em] font-extrabold text-xl md:text-2xl text-white font-display">
+          <ArtefactLetterA className="w-[18px] h-[18px] md:w-[22px] md:h-[22px] mr-[1px] text-white" />
           <span>RTEF</span>
-          <ArtefactLetterA className="w-5 h-5 md:w-6 md:h-6 mx-0.5 text-white" />
+          <ArtefactLetterA className="w-[18px] h-[18px] md:w-[22px] md:h-[22px] mx-[1px] text-white" />
           <span>CT</span>
         </div>
-        <div className="h-[2.5px] w-16 md:w-20 bg-gradient-to-r from-[#E60067] via-[#FF2D75] to-[#E60067] rounded-full mt-1"></div>
+        <div className="h-[2px] w-full max-w-[125px] bg-[#E60067] rounded-full mt-1"></div>
+      </div>
+    );
+
+    // Markdown Rich Renderer Component
+    const MarkdownContent = ({ content }) => {
+      const html = useMemo(() => {
+        try {
+          return marked.parse(content || "");
+        } catch {
+          return content;
+        }
+      }, [content]);
+
+      return (
+        <div 
+          className="markdown-body"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      );
+    };
+
+    // User Avatar Silhouette Icon
+    const UserAvatar = () => (
+      <div className="w-8 h-8 rounded-xl bg-[#1E2433] border border-[#2D364D] flex items-center justify-center shrink-0 text-slate-300 shadow-sm" title="Você">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      </div>
+    );
+
+    // AI Robot Avatar Icon
+    const RobotAvatar = () => (
+      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#E60067] to-[#FF3378] flex items-center justify-center shrink-0 text-white shadow-md" title="Assistente IA">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <rect x="3" y="11" width="18" height="10" rx="2" strokeWidth="2" />
+          <circle cx="12" cy="5" r="2" strokeWidth="2" />
+          <path d="M12 7v4" strokeWidth="2" />
+          <line x1="8" y1="16" x2="8.01" y2="16" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="16" y1="16" x2="16.01" y2="16" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
       </div>
     );
 
@@ -132,7 +229,6 @@
     ];
 
     function App() {
-      // Sessions & Persistence
       const [sessions, setSessions] = useState(() => {
         try {
           const saved = localStorage.getItem("artefact_chat_sessions");
@@ -155,7 +251,6 @@
       const messagesEndRef = useRef(null);
       const inputRef = useRef(null);
 
-      // Save sessions and active session to localStorage
       useEffect(() => {
         localStorage.setItem("artefact_chat_sessions", JSON.stringify(sessions));
       }, [sessions]);
@@ -164,7 +259,6 @@
         localStorage.setItem("artefact_current_session", currentSessionId);
       }, [currentSessionId]);
 
-      // Load conversation history from backend on session change or refresh
       useEffect(() => {
         fetchHistory(currentSessionId);
         fetchHealth();
@@ -230,7 +324,7 @@
       };
 
       const deleteSession = async (e, sessionId) => {
-        e.stopPropagation();
+        if (e) e.stopPropagation();
         try {
           await fetch(`/api/chat/history/${sessionId}`, { method: "DELETE" });
         } catch (err) {
@@ -252,20 +346,22 @@
         }
       };
 
+      const clearCurrentConversation = () => {
+        deleteSession(null, currentSessionId);
+      };
+
       const handleSend = async (overrideQuery = null) => {
         const text = (overrideQuery || input).trim();
         if (!text || isLoading) return;
 
         setInput("");
 
-        // Optimistically update UI
         const userMsg = { role: "user", content: text };
         setMessages(prev => [...prev, userMsg]);
         setIsLoading(true);
 
-        // Update session title if first message
         if (messages.length === 0) {
-          const title = text.slice(0, 28) + (text.length > 28 ? "..." : "");
+          const title = text.slice(0, 26) + (text.length > 26 ? "..." : "");
           setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, title } : s));
         }
 
@@ -297,7 +393,7 @@
             ...prev,
             {
               role: "assistant",
-              content: "Desculpe, tive uma oscilação na conexão com o sistema da loja. Poderia tentar enviar sua mensagem novamente?",
+              content: "Desculpe, tive uma instabilidade momentânea ao consultar o sistema. Por favor, reenvie sua pergunta!",
               tools_used: []
             }
           ]);
@@ -317,7 +413,7 @@
       return (
         <div className="flex h-screen w-full bg-[#0B0D13] text-slate-100 font-sans overflow-hidden">
           
-          {/* SIDEBAR: CONVERSATION HISTORY */}
+          {/* SIDEBAR: CONVERSATION HISTORY & DELETE OPTIONS */}
           <aside className={`
             fixed inset-y-0 left-0 z-40 w-72 bg-[#0E1017] border-r border-[#1B202E] flex flex-col transition-all duration-300 ease-in-out
             md:relative md:translate-x-0
@@ -348,11 +444,13 @@
               </button>
             </div>
 
-            {/* Session List */}
-            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-2 py-1">
-                Histórico de Conversas
+            {/* Session List with Explicit Delete Buttons */}
+            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-2 py-1">
+                <span>Histórico de Conversas</span>
+                <span className="text-[10px] text-slate-600 font-mono">{sessions.length}</span>
               </div>
+
               {sessions.map(s => {
                 const isActive = s.id === currentSessionId;
                 return (
@@ -363,39 +461,48 @@
                       if (window.innerWidth < 768) setSidebarOpen(false);
                     }}
                     className={`
-                      group flex items-center justify-between px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-all
+                      group flex items-center justify-between px-3 py-2.5 rounded-xl text-sm cursor-pointer transition-all
                       ${isActive 
-                        ? "bg-[#181C2A] text-white border-l-2 border-[#E60067] font-medium" 
+                        ? "bg-[#181C2A] text-white border-l-2 border-[#E60067] shadow-sm font-medium" 
                         : "text-slate-400 hover:bg-[#12151F] hover:text-slate-200"}
                     `}
                   >
-                    <div className="flex items-center space-x-2.5 truncate">
+                    <div className="flex items-center space-x-2.5 truncate flex-1 mr-2">
                       <span className="text-xs text-slate-500">💬</span>
                       <span className="truncate">{s.title || "Conversa"}</span>
                     </div>
+
+                    {/* Visible Delete Action */}
                     <button
                       onClick={(e) => deleteSession(e, s.id)}
-                      className="opacity-0 group-hover:opacity-100 hover:text-red-400 p-1 text-xs text-slate-500 transition-opacity"
-                      title="Excluir conversa"
+                      className="p-1 rounded-md text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      title="Apagar esta conversa"
                     >
-                      🗑
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
                     </button>
                   </div>
                 );
               })}
             </div>
 
-            {/* Sidebar Footer: System Status */}
-            <div className="p-3 border-t border-[#1B202E] bg-[#0A0C12] text-xs text-slate-400">
-              <div className="flex items-center justify-between mb-1">
+            {/* Sidebar Bottom Action: Clear Current Chat */}
+            <div className="p-3 border-t border-[#1B202E] bg-[#0A0C12] space-y-2">
+              <button
+                onClick={clearCurrentConversation}
+                className="w-full flex items-center justify-center space-x-2 text-xs text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-[#1F2536] hover:border-red-500/30 rounded-lg py-2 transition-all"
+              >
+                <span>🗑️</span>
+                <span>Apagar conversa atual</span>
+              </button>
+
+              <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
                 <span className="flex items-center space-x-1.5">
                   <span className={`w-2 h-2 rounded-full ${systemStatus.healthy ? "bg-emerald-500 animate-pulse-subtle" : "bg-amber-500"}`}></span>
-                  <span className="text-[11px] font-medium text-slate-300">Sistema Conectado</span>
+                  <span className="text-[11px] font-medium text-slate-300">LangChain Ativo</span>
                 </span>
                 <span className="text-[10px] text-slate-500 uppercase font-mono">v1.0</span>
-              </div>
-              <div className="text-[11px] text-slate-500 truncate font-mono">
-                {systemStatus.provider}
               </div>
             </div>
           </aside>
@@ -409,7 +516,7 @@
                 <button
                   onClick={() => setSidebarOpen(!sidebarOpen)}
                   className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-[#1A1F2C] transition-colors"
-                  title="Toggle histórico"
+                  title="Abrir/Fechar histórico"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -417,7 +524,7 @@
                 </button>
               </div>
 
-              {/* CENTER: ARTEFACT WORD WITH EXACT FONT & ACCENT */}
+              {/* CENTER: ARTEFACT BRANDING (Close letters, exact matching logo) */}
               <div className="flex-1 flex justify-center">
                 <ArtefactTopBrand />
               </div>
@@ -475,26 +582,19 @@
                       key={idx} 
                       className={`flex items-start space-x-3 ${isUser ? "flex-row-reverse space-x-reverse" : "flex-row"}`}
                     >
-                      {/* Avatar */}
-                      <div className={`
-                        w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold
-                        ${isUser 
-                          ? "bg-gradient-to-tr from-[#252C3E] to-[#36405A] text-white" 
-                          : "bg-gradient-to-tr from-[#E60067] to-[#FF4589] text-white shadow-md"}
-                      `}>
-                        {isUser ? "VOCÊ" : "IA"}
-                      </div>
+                      {/* Formatted Avatar (Silhouette for User, Robot for AI) */}
+                      {isUser ? <UserAvatar /> : <RobotAvatar />}
 
                       {/* Bubble */}
                       <div className={`
-                        max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm
+                        max-w-[85%] sm:max-w-[80%] rounded-2xl px-5 py-4 text-sm leading-relaxed shadow-sm
                         ${isUser ? "bubble-user text-slate-100 rounded-tr-sm" : "bubble-bot text-slate-200 rounded-tl-sm"}
                       `}>
                         {/* Tools Badge Indicator (if bot called tools) */}
                         {!isUser && m.tools_used && m.tools_used.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mb-2 pb-2 border-b border-[#1F2536]">
+                          <div className="flex flex-wrap items-center gap-1.5 mb-3 pb-2.5 border-b border-[#1F2536]">
                             <span className="text-[10px] uppercase font-mono text-slate-500 flex items-center">
-                              <span className="mr-1">⚡</span> Tools:
+                              <span className="mr-1">⚡</span> Ferramentas:
                             </span>
                             {m.tools_used.map((tool, tIdx) => (
                               <span 
@@ -509,15 +609,13 @@
 
                         {/* Guardrail badge */}
                         {!isUser && m.guardrail_triggered && (
-                          <div className="inline-flex items-center text-[10px] font-mono bg-[#28151D] text-[#FF4589] border border-[#FF2D75]/30 px-2 py-0.5 rounded-md mb-2">
+                          <div className="inline-flex items-center text-[10px] font-mono bg-[#28151D] text-[#FF4589] border border-[#FF2D75]/30 px-2.5 py-0.5 rounded-md mb-2">
                             🛡️ Política de Escopo Ativada
                           </div>
                         )}
 
-                        {/* Message Text with basic markdown line formatting */}
-                        <div className="space-y-1.5 whitespace-pre-wrap">
-                          {m.content}
-                        </div>
+                        {/* Beautifully Rendered Markdown Text */}
+                        <MarkdownContent content={m.content} />
                       </div>
                     </div>
                   );
@@ -526,9 +624,7 @@
                 {/* Loading indicator */}
                 {isLoading && (
                   <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#E60067] to-[#FF4589] text-white flex items-center justify-center shrink-0 text-xs font-semibold shadow-md">
-                      IA
-                    </div>
+                    <RobotAvatar />
                     <div className="bubble-bot rounded-2xl rounded-tl-sm px-4 py-3 text-sm flex items-center space-x-2 text-slate-400">
                       <span className="w-2 h-2 rounded-full bg-[#E60067] animate-ping"></span>
                       <span>Consultando catálogo e políticas...</span>
@@ -540,7 +636,7 @@
               </div>
             </div>
 
-            {/* BOTTOM FLOATING INPUT (21st.dev Style) */}
+            {/* BOTTOM FLOATING INPUT */}
             <div className="p-4 md:p-6 bg-gradient-to-t from-[#0B0D13] via-[#0B0D13]/90 to-transparent">
               <div className="max-w-3xl mx-auto">
                 <div className="relative rounded-2xl bg-[#131620] border border-[#232A3D] focus-within:border-[#E60067] transition-all shadow-xl artefact-glow">

@@ -31,3 +31,4 @@ def test_frontend_index_served_successfully(client: TestClient):
     # 5. Store identity: Empório da Música and Campo Grande
     assert "Empório da Música" in html
     assert "Campo Grande" in html
+

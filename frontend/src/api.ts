@@ -25,3 +25,4 @@ export async function clearHistory(sessionId: string): Promise<boolean> {
   const res = await fetch(`${API_BASE}/chat/history/${sessionId}`, { method: 'DELETE' });
   return res.ok;
 }
+
