@@ -450,11 +450,11 @@ def build_html_content() -> str:
       </svg>
       <span>CT</span>
     </div>
-    <div class="header-tag">Technical Case Submission</div>
+    <div class="header-tag">Project README &amp; Technical Documentation</div>
   </div>
   
-  <div class="header-title">Empório da Música - AI Agent & Evaluation Harness</div>
-  <div class="header-sub">Production-Grade ReAct Agent, Store Policy RAG, Relational ETL Pipeline & Automated Evaluation Harness</div>
+  <div class="header-title">Empório da Música - AI Agent &amp; Evaluation Harness</div>
+  <div class="header-sub">Consolidated Project README, Architecture Decisions, Automated Evaluation Harness &amp; Complete Documentation</div>
 
   <div class="metadata-grid">
     <div class="metadata-item">
@@ -977,22 +977,7 @@ def generate_pdf():
         print(f"Browser stderr: {res.stderr}")
         raise RuntimeError(f"Browser process failed with code {res.returncode}")
         
-    print(f"Primary PDF created successfully: {primary_pdf_path} ({primary_pdf_path.stat().st_size} bytes)")
-    
-    # Generate copies for convenience across root and docs/
-    copies = [
-        secondary_pdf_path,
-        ROOT_DIR / "README_and_Documentation.pdf",
-        ROOT_DIR / "Augusto Sousa - AI Engineer - Full-Stack para Aplicacoes com IA Generativa.pdf",
-        docs_dir / primary_pdf_name,
-        docs_dir / "Augusto Sousa - AI Engineer - Full-Stack para Aplicacoes com IA Generativa.pdf",
-    ]
-    with open(primary_pdf_path, "rb") as src:
-        pdf_bytes = src.read()
-        for c in copies:
-            with open(c, "wb") as dst:
-                dst.write(pdf_bytes)
-            print(f"Copied PDF to: {c}")
+    print(f"Consolidated single PDF created successfully: {primary_pdf_path} ({primary_pdf_path.stat().st_size} bytes)")
 
 if __name__ == "__main__":
     generate_pdf()
